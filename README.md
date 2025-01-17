@@ -16,7 +16,7 @@ This is the backend for my **Final Year Project**. The application will handle C
 
 ### Development Process
 
-"Let's see how it goes with using YouTube tutorials and the FastAPI docs to build a secure and solid backend."
+Let's see how it goes with using YouTube tutorials and the FastAPI docs without getting any errors..
 
 ### Features (Planned):
 
@@ -32,11 +32,8 @@ This is the backend for my **Final Year Project**. The application will handle C
 
 ### Future Improvements
 
-- **Authentication & Authorization**: Implementing secure login and user management features.
-- **Unit Testing**: Add comprehensive tests to ensure reliability.
-- **Error Handling**: Improve the error-handling mechanisms to provide better feedback to users.
-
-
-### License
-
-This project is open-source and available under the [MIT License](LICENSE).
+- **Authentication & Authorization**
+- **Middleware**
+- **JWT**
+- **Unit Testing**
+- **Hosting**

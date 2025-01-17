@@ -1,13 +1,16 @@
-# Schema for team 
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
-class TeamBase(BaseModel):
+class TeamCreate(BaseModel):
     name: str
+    creator_id: int
+    member_ids: List[int] = []
 
-class TeamResponse(TeamBase):
+class TeamResponse(BaseModel):
     id: int
-    employer_id: int
+    name: str
+    creator_id: int
+    member_ids: List[int]
 
-    class config:
-        orm_mode = True
+    class Config:
+        from_attributes = True

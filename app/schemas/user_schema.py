@@ -1,23 +1,14 @@
-# schema for users
-from pydantic import BaseModel, EmailStr
-from typing import List, Optional
+from pydantic import BaseModel
 
-class team(BaseModel):
-    id:int
-    name:str
-    # needed to add this to allow pydantic to read the SQL objects. This is as pydantic generally expects json data.
-    class Config:
-        orm_mode = True
-    
-class UserBase(BaseModel):
-    email: EmailStr
+class UserCreate(BaseModel):
+    name: str
+    email: str
 
-class UserCreate(UserBase):
-    password:str
-
-class UserResponse(UserBase):
-    id:int
-    teams: List[team] = []
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+

@@ -10,4 +10,4 @@ class User(Base):
     email = Column(String(50), unique=True, index=True)
 
     created_teams = relationship("Team", back_populates="creator")
-    teams = relationship("Team", secondary="team_members", back_populates="members")
+    teams = relationship("Team", secondary="team_user", back_populates="users")

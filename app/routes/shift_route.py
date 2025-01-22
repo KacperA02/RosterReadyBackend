@@ -1,23 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List
-from app import crud, schemas
+from app.crud.shift_crud import create_shift
+from app.schemas.shift_schema import ShiftCreate, ShiftResponse
 from app.db_config import get_db
 
 router = APIRouter()
 
-# creating a new shift
-@router.post("/shifts/", response_model=schemas.Shift)
-async def create_new_shift(shift: schemas.ShiftCreate, db: Session = Depends(get_db)):
-    new_shift, error = crud.create_shift(db=db, shift=shift)
+@router.post("/", response_model=ShiftResponse)
+async def create_shift_route(shift: ShiftCreate, db: Session = Depends(get_db)):
+    db_shift, error = create_shift(db, shift)
     if error:
-        raise HTTPException(status_code=400, detail=error)  
-    return new_shift 
-
-# getting all shifts from a singular team
-@router.get("/shifts/{team_id}", response_model=List[schemas.Shift])
-async def get_shifts(team_id: int, db: Session = Depends(get_db)):
-    shifts, error = crud.get_shifts_by_team(db=db, team_id=team_id)
-    if error:
-        raise HTTPException(status_code=404, detail=error)  
-    return shifts  
+        raise HTTPException(status_code=400, detail=error)
+    return db_shift

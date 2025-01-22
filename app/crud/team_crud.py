@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.team_model import Team, team_user
+from app.models.team_model import Team
 from app.models.user_model import User
 from app.schemas.team_schema import TeamCreate
 
@@ -41,7 +41,7 @@ def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
     if len(new_users) != len(new_user_ids):
         return None, "One of the user IDs are invalid"
 
-    # Add  new members
+    # Add new members
     team.users.extend(new_users)
     db.commit()
 

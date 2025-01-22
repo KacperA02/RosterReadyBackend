@@ -1,14 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db_config import Base
-
-# Association table for many-to-many relationship between Team and User
-team_user = Table(
-    "team_user",
-    Base.metadata,
-    Column("team_id", Integer, ForeignKey("teams.id"), primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-)
+from app.association import team_user, day_shift_team
 
 class Team(Base):
     __tablename__ = "teams"
@@ -21,3 +14,8 @@ class Team(Base):
     creator = relationship("User", back_populates="created_teams")
     users = relationship("User", secondary=team_user, back_populates="teams")
     shifts = relationship("Shift", back_populates="team")
+    days = relationship(
+        "Day",
+        secondary=day_shift_team,
+        back_populates="teams",
+    )

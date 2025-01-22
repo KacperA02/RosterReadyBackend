@@ -1,19 +1,22 @@
 from pydantic import BaseModel
 from datetime import time
+from typing import List
 
-# base model for valdidation
+# Base model for validation
 class ShiftBase(BaseModel):
     name: str
     time_start: time
     time_end: time
-# the team the shift belongs to 
-class ShiftCreate(ShiftBase):
-    team_id: int  
 
-# the response from the data
-class Shift(ShiftBase):
-    id: int
+# The team the shift belongs to
+class ShiftCreate(ShiftBase):
     team_id: int
-    # Tells pydantic to accept creations or updates made from the sqlAlchemy model
+    days: List[int]  
+
+# The response from the data
+class ShiftResponse(ShiftBase):
+    id: int
+    team_id: int 
+
     class Config:
-        from_attributes = True 
+        from_attributes = True

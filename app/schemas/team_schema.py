@@ -10,7 +10,7 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     creator_id: int
-    user_ids: List[int]
+    user_ids: List[int] = []
 
     class Config:
         from_attributes = True

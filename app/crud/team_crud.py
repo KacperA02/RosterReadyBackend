@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.team_model import Team
 from app.models.user_model import User
 from app.schemas.team_schema import TeamCreate
@@ -27,9 +27,12 @@ def create_team(db: Session, team: TeamCreate):
 
 # getting a single team
 def get_team(db: Session, team_id: int):
-    return db.query(Team).filter(Team.id == team_id).first()
+    team = db.query(Team).options(joinedload(Team.users)).filter(Team.id == team_id).first()
+    if not team:
+        return None
+    return team
 
-# updating the 
+# updating the users
 def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
     # Fetch the team
     team = db.query(Team).filter(Team.id == team_id).first()

@@ -15,10 +15,20 @@ async def create_team_route(team: TeamCreate, db: Session = Depends(get_db)):
 
 @router.get("/{team_id}", response_model=TeamResponse)
 async def get_team_route(team_id: int, db: Session = Depends(get_db)):
-    team = await get_team(db, team_id)
+    team = get_team(db, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-    return team
+
+    # Had to manually map the linking table as it was giving back and empty array
+    user_ids = [user.id for user in team.users]
+
+    
+    return TeamResponse(
+        id=team.id,
+        name=team.name,
+        creator_id=team.creator_id,
+        user_ids=user_ids  
+    )
 
 @router.put("/{team_id}/users", response_model=TeamResponse)
 def add_users_to_team(team_id: int, new_users_ids: list[int], db: Session = Depends(get_db)):

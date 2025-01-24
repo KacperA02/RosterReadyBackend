@@ -4,7 +4,7 @@ from app.crud.shift_crud import create_shift
 from app.csp_solver import ShiftAssignmentSolver
 from app.schemas.shift_schema import ShiftCreate, ShiftResponse
 from app.db_config import get_db
-from app.models import Team, User, Shift, Day
+from app.models import Team, User, UserConstraint
 from app.association import team_user, day_shift_team
 
 router = APIRouter()
@@ -18,34 +18,41 @@ async def create_shift_route(shift: ShiftCreate, db: Session = Depends(get_db)):
 
 # Route for creating a schedule by assigning shifts to users
 @router.get("/{team_id}/assign_shifts")
-# takes team_id para
 async def assign_shifts(team_id: int, db: Session = Depends(get_db)):
-    # Finds the team and checks if it exists
+    # Find the team
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    # Fetches all the users and joins with the m:n table and filters to the correct team id
+    # Get users in the team
     users = db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
-    # defining a variable to store each user within the team into this array
     user_ids = [user.id for user in users]
 
-    # gets all rows within the linking table which matches the team_id as the one given
+    # Get day_shift_team_data
     day_shift_team_data = db.query(day_shift_team.c.day_id, day_shift_team.c.shift_id).filter(day_shift_team.c.team_id == team_id).all()
 
-    # validating that users exist and if shifts exist
     if not user_ids or not day_shift_team_data:
         raise HTTPException(status_code=404, detail="Missing users or day-shift data")
 
-    # defining a variable called solver then passing the two variables created above which the solver needs
-    solver = ShiftAssignmentSolver(user_ids, day_shift_team_data)
-    #running the solve method on the solver variable to get the solutions 
+    # Fetch user availability from UserConstraint 
+    user_availability = {
+        (constraint.day_id, constraint.shift_id, constraint.user_id,constraint.is_available)
+        for constraint in db.query(UserConstraint)
+        .filter(UserConstraint.team_id == team_id)
+        .all()
+    }
+    print(user_availability)
+    print(day_shift_team_data)
+    # Create the solver
+    solver = ShiftAssignmentSolver(user_ids, day_shift_team_data,user_availability)
+
+    # Run the solver to get possible solutions
     solutions = solver.solve()
-    # Checks if there is a solution available, this may come up if there are too many constraints to fill each varaible
+
     if not solutions:
         raise HTTPException(status_code=400, detail="No valid solutions found")
 
-    # The less constraints and more variables and domains then there are more solutions for the purpose of testing i am just getting the first solution
+    # Get the first solution for the purpose of testing
     first_solution = solutions[0]
     formatted_solution = [
         {"day_id": day_id, "shift_id": shift_id, "user_id": user_id}
@@ -54,10 +61,10 @@ async def assign_shifts(team_id: int, db: Session = Depends(get_db)):
 
     return {
         "team_id": team_id,
-        # Getting the amount of solutions found
         "total_solutions": len(solutions),
         "first_solution": formatted_solution
     }
+
 
 
 

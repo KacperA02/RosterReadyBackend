@@ -17,3 +17,5 @@ day_shift_team = Table(
     Column("shift_id", Integer, ForeignKey("shifts.id"), primary_key=True),
     Column("team_id", Integer, ForeignKey("teams.id"), primary_key=True),
 )
+
+

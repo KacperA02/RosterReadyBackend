@@ -20,3 +20,5 @@ class Team(Base):
         back_populates="teams",
         overlaps="days" 
     )
+    # added userConstraint relationship
+    user_constraints = relationship("UserConstraint", back_populates="team")

@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.shift_model import Shift
 from app.schemas.shift_schema import ShiftCreate
 from app.models.team_model import Team
-from app.models.day_model import Day  
+from app.models.day_model import Day
+from app.crud.user_constraints_crud import create_user_constraints
 from app.association import day_shift_team
 
 def create_shift(db: Session, shift: ShiftCreate):
@@ -37,5 +38,6 @@ def create_shift(db: Session, shift: ShiftCreate):
             team_id=shift.team_id
         ))
     db.commit()
-
+    # creates all rows with the for each shift and user
+    create_user_constraints(db, db_shift.id, shift.team_id, shift.days)
     return db_shift, None

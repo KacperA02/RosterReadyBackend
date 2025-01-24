@@ -22,3 +22,5 @@ class Day(Base):
         back_populates="days",
         overlaps="days,shifts",
     )
+    # added userConstraint relationship
+    user_constraints = relationship("UserConstraint", back_populates="day")

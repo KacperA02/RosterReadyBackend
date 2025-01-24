@@ -20,3 +20,6 @@ class Shift(Base):
         secondary=day_shift_team,
         overlaps="days",
     )
+    # added userConstraint relationship
+    user_constraints = relationship("UserConstraint", back_populates="shift")
+

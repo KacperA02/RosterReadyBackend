@@ -12,3 +12,5 @@ class User(Base):
 
     created_teams = relationship("Team", back_populates="creator")
     teams = relationship("Team", secondary=team_user, back_populates="users")
+    # added userConstraint relationship
+    user_constraints = relationship("UserConstraint", back_populates="user")

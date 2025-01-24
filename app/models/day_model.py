@@ -14,9 +14,11 @@ class Day(Base):
         "Shift",
         secondary=day_shift_team,
         back_populates="days",
+        overlaps="days",
     )
     teams = relationship(
         "Team",
         secondary=day_shift_team,
         back_populates="days",
+        overlaps="days,shifts",
     )

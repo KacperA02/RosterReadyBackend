@@ -1,7 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
 from app.models.team_model import Team
 from app.models.user_model import User
+from app.models.shift_model import Shift
+from app.models.day_model import Day
 from app.schemas.team_schema import TeamCreate
+# from app.association import team_user, day_shift_team
+
 
 def create_team(db: Session, team: TeamCreate):
     # Fetch the creator
@@ -49,3 +53,12 @@ def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
     db.commit()
 
     return team, None
+
+# def get_users_for_team(db: Session, team_id: int):
+#     return db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
+
+# def get_shifts_for_team(db: Session, team_id: int):
+#     return db.query(Shift).join(day_shift_team).filter(day_shift_team.c.team_id == team_id).all()
+
+# def get_days_for_team(db: Session, team_id: int):
+#     return db.query(Day).join(day_shift_team).filter(day_shift_team.c.team_id == team_id).all()

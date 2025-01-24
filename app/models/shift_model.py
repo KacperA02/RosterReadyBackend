@@ -18,4 +18,5 @@ class Shift(Base):
         "Day", 
         back_populates="shifts",
         secondary=day_shift_team,
+        overlaps="days",
     )

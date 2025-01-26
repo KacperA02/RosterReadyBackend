@@ -5,10 +5,17 @@ from app.routes.team_route import router as team_router
 from app.routes.shift_route import router as shift_router
 from app.routes.day_route import router as day_router
 from app.routes.user_constraint_route import router as userCon_router
-
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],  
+)
 # Include routers
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(team_router, prefix="/teams", tags=["Teams"])

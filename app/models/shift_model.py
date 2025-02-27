@@ -10,6 +10,8 @@ class Shift(Base):
     name = Column(String(50), index=True)
     time_start = Column(Time)
     time_end = Column(Time)
+    task = Column(String(150))
+    no_of_users = Column(Integer) 
     team_id = Column(Integer, ForeignKey("teams.id"))
 
     # Relationships

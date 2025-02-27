@@ -12,7 +12,7 @@ class Team(Base):
     creator_id = Column(Integer, ForeignKey("users.id"))
 
     # Relationships
-    creator = relationship("User", back_populates="created_teams", foreign_keys=[creator_id])  # Corrected foreign_keys
+    creator = relationship("User", back_populates="created_teams", foreign_keys=[creator_id]) 
     users = relationship("User", back_populates="team", foreign_keys=[User.team_id])
     shifts = relationship("Shift", back_populates="team")
     days = relationship(

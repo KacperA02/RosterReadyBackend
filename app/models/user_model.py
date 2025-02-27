@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String,ForeignKey
 from sqlalchemy.orm import relationship
 from app.db_config import Base
 from app.association import team_user
@@ -7,10 +7,16 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), index=True)
+    first_name = Column(String(50), index=True)
+    last_name = Column(String(50), index=True)
     email = Column(String(50), unique=True, index=True)
+    password = Column(String(60))
+    mobile_number = Column(String(12), unique=True, index=True)
+    day_off_count = Column(Integer, default=0)  # Set default value to 0
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
-    created_teams = relationship("Team", back_populates="creator")
-    teams = relationship("Team", secondary=team_user, back_populates="users")
+
+    team = relationship("Team", back_populates="users", foreign_keys=[team_id])
+    created_teams = relationship("Team", back_populates="creator", foreign_keys="[Team.creator_id]")
     # added userConstraint relationship
     user_constraints = relationship("UserConstraint", back_populates="user")

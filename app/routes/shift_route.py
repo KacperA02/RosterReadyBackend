@@ -5,7 +5,7 @@ from app.csp_solver import ShiftAssignmentSolver
 from app.schemas.shift_schema import ShiftCreate, ShiftResponse
 from app.db_config import get_db
 from app.models import Team, User, UserConstraint
-from app.association import team_user, day_shift_team
+from app.association import day_shift_team
 
 router = APIRouter()
 
@@ -25,14 +25,14 @@ async def assign_shifts(team_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Team not found")
 
     # Get users in the team
-    users = db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
-    user_ids = [user.id for user in users]
+    # users = db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
+    # user_ids = [user.id for user in users]
 
     # Get day_shift_team_data
     day_shift_team_data = db.query(day_shift_team.c.day_id, day_shift_team.c.shift_id).filter(day_shift_team.c.team_id == team_id).all()
 
-    if not user_ids or not day_shift_team_data:
-        raise HTTPException(status_code=404, detail="Missing users or day-shift data")
+    # if not user_ids or not day_shift_team_data:
+    #     raise HTTPException(status_code=404, detail="Missing users or day-shift data")
 
     # Fetch user availability from UserConstraint 
     user_availability = {
@@ -44,7 +44,7 @@ async def assign_shifts(team_id: int, db: Session = Depends(get_db)):
     print(user_availability)
     print(day_shift_team_data)
     # Create the solver
-    solver = ShiftAssignmentSolver(user_ids, day_shift_team_data,user_availability)
+    # solver = ShiftAssignmentSolver(user_ids, day_shift_team_data,user_availability)
 
     # Run the solver to get possible solutions
     solutions = solver.solve()

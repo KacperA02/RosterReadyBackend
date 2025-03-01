@@ -3,29 +3,29 @@ from app.models.user_constraint_model import UserConstraint
 from app.models.user_model import User
 from typing import Optional
 from app.models.day_model import Day
-from app.association import team_user  
+# from app.association import team_user  
 
 # creating a constraint for each user and shift within the team
 def create_user_constraints(db: Session, shift_id: int, team_id: int, days_for_shift: list):
     # Gets all the users which match the team id 
-    team_users = db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
+    # team_users = db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
 
     # Fetches every day the shift repeats
     days_for_shift = db.query(Day).filter(Day.id.in_(days_for_shift)).all()
 
     # Creating a possible constraint for each user shift and day
-    for user in team_users:
-        for day in days_for_shift:
-            user_constraint = UserConstraint(
-                user_id=user.id,
-                team_id=team_id,
-                shift_id=shift_id,
-                day_id=day.id,
-                # presetting the boolean fields
-                is_available=True, 
-                is_preferred=False  
-            )
-            db.add(user_constraint)
+    # for user in team_users:
+    #     for day in days_for_shift:
+    #         user_constraint = UserConstraint(
+    #             user_id=user.id,
+    #             team_id=team_id,
+    #             shift_id=shift_id,
+    #             day_id=day.id,
+    #             # presetting the boolean fields
+    #             is_available=True, 
+    #             is_preferred=False  
+    #         )
+    #         db.add(user_constraint)
 
     # commiting the userconstraint to the db
     db.commit()

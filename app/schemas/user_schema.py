@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from typing import List, Optional
+from app.schemas.role_schema import RoleResponse
 
 class UserCreate(BaseModel):
     first_name: str  
@@ -17,7 +19,8 @@ class UserResponse(BaseModel):
     email: str
     mobile_number: str
     day_off_count: int 
-    team_id: int | None  
+    team_id: Optional[int] | None
+    roles: List[RoleResponse] = []   
 
     class Config:
         from_attributes = True

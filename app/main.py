@@ -12,8 +12,23 @@ from app.routes.user_constraint_route import router as userCon_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.crud.day_crud import create_all_days 
 from app.crud.week_crud import create_all_weeks
+from app.crud.role_crud import seed_roles
 
-app = FastAPI()
+# lifespan runs on start up and shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    # creating all days and weeks on startup.
+    try:
+        current_year = datetime.now(timezone.utc).year
+        create_all_days(db) 
+        create_all_weeks(db, current_year)
+        seed_roles(db)
+        yield  
+    finally:
+        db.close()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,18 +46,3 @@ app.include_router(userCon_router, prefix="/user-constraints", tags=["User Const
 
 # Create all database tables at once
 Base.metadata.create_all(bind=engine)
-
-# lifespan runs on start up and shutdown
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    db = SessionLocal()
-    # creating all days and weeks on startup.
-    try:
-        current_year = datetime.now(timezone.utc).year
-        create_all_days(db) 
-        create_all_weeks(db, current_year) 
-        yield  
-    finally:
-        db.close()
-
-app = FastAPI(lifespan=lifespan)

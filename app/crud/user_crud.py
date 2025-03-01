@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.user_model import User
+from app.models.role_model import Role
 from app.schemas.user_schema import UserCreate
 import bcrypt
 
@@ -25,13 +26,21 @@ def create_user(db: Session, user: UserCreate):
             detail="Mobile number already registered"
         )
     encrypted_password = hash_password(user.password)
-    
+    # adding the customer role to a newly created user
+    customer_role = db.query(Role).filter(Role.name == "Customer").first()
+    if not customer_role:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Customer role not found! Ensure roles are seeded."
+        )
+        
     new_user = User(
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
         mobile_number=user.mobile_number,
         password=encrypted_password,
+        roles=[customer_role]
         )
     db.add(new_user)
     db.commit()

@@ -5,6 +5,7 @@ class RoleBase(BaseModel):
 
 class RoleResponse(RoleBase):
     id: int
+    name: str
 
     class Config:
         from_attributes = True

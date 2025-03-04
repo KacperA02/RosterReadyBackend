@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import jwt
+from typing import List
 from fastapi import Depends, HTTPException, status
 # A utility for handling OAuth2-based authentication (used to pass the token).
 from fastapi.security import OAuth2PasswordBearer

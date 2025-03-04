@@ -3,31 +3,36 @@ from app.models.team_model import Team
 from app.models.user_model import User
 from app.models.shift_model import Shift
 from app.models.day_model import Day
+from app.models.role_model import Role
 from app.schemas.team_schema import TeamCreate
+from app.schemas.user_schema import UserResponse
 # from app.association import team_user, day_shift_team
 
 
-def create_team(db: Session, team: TeamCreate):
-    # Fetch the creator
-    creator = db.query(User).filter(User.id == team.creator_id).first()
+def create_team(db: Session, team: TeamCreate, current_user: UserResponse):
+    # Fetch the creator (current authenticated user)
+    creator = db.query(User).filter(User.id == current_user.id).first()
     if not creator:
         return None, "Creator not found"
 
+    # Add the "employer" role to the creator (if not already added)
+    employer_role = db.query(Role).filter(Role.name == "Employer").first()
+    if employer_role and employer_role not in creator.roles:
+        creator.roles.append(employer_role)
+        db.commit()
+    # checking if the user is already part of a team
+    if creator.team_id is not None:
+        return None, "You are part of a team, leave the current team to create one"
     # Create the team
-    new_team = Team(name=team.name, creator_id=team.creator_id)
+    new_team = Team(name=team.name, creator_id=creator.id)
     db.add(new_team)
     db.commit()
     db.refresh(new_team)
-
-    # Adding members conditon
-    if team.user_ids:
-        userTeam = db.query(User).filter(User.id.in_(team.user_ids)).all()
-        if len(userTeam) != len(team.user_ids):
-            return None, "One of the user IDs are invalid"
-        new_team.users.extend(userTeam)
-        db.commit()
-
+    creator.team_id = new_team.id
+    db.commit()  
     return new_team, None
+
+
 
 # getting a single team
 def get_team(db: Session, team_id: int):

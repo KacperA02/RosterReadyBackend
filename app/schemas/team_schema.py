@@ -3,8 +3,6 @@ from typing import List, Optional
 
 class TeamCreate(BaseModel):
     name: str
-    creator_id: int
-    user_ids: List[int] = []
 
 class TeamResponse(BaseModel):
     id: int

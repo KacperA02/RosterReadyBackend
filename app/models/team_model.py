@@ -15,6 +15,7 @@ class Team(Base):
     creator = relationship("User", back_populates="created_teams", foreign_keys=[creator_id]) 
     users = relationship("User", back_populates="team", foreign_keys=[User.team_id])
     shifts = relationship("Shift", back_populates="team")
+    invitations = relationship("TeamInvitation", back_populates="team")
     days = relationship(
         "Day",
         secondary=day_shift_team,

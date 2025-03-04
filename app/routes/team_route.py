@@ -3,12 +3,18 @@ from sqlalchemy.orm import Session
 from app.schemas.team_schema import TeamCreate, TeamResponse
 from app.crud.team_crud import create_team, get_team, update_team_users
 from app.db_config import get_db
+from app.schemas.user_schema import UserResponse
+from app.dependencies.auth import get_current_user
 
 router = APIRouter()
 
 @router.post("/", response_model=TeamResponse)
-async def create_team_route(team: TeamCreate, db: Session = Depends(get_db)):
-    new_team,error = create_team(db, team)
+async def create_team_route(
+    team: TeamCreate, 
+    current_user: UserResponse = Depends(get_current_user),  
+    db: Session = Depends(get_db)
+):
+    new_team, error = create_team(db, team, current_user)  
     if error:
         raise HTTPException(status_code=400, detail=error)
     return new_team

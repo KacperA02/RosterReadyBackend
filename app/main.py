@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.crud.day_crud import create_all_days 
 from app.crud.week_crud import create_all_weeks
 from app.crud.role_crud import seed_roles
-
+from app.routes.team_invitation_route import router as team_invitation_router
 # lifespan runs on start up and shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,5 +45,6 @@ app.include_router(shift_router, prefix="/shifts", tags=["Shifts"])
 app.include_router(day_router, prefix="/days", tags=["Days"])
 app.include_router(userCon_router, prefix="/user-constraints", tags=["User Constraints"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(team_invitation_router, prefix="/invitation", tags=["invitations"])
 # Create all database tables at once
 Base.metadata.create_all(bind=engine)

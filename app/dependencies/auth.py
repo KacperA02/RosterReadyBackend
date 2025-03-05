@@ -99,5 +99,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         roles=roles
     )
 
+# function takes a list of required roles and checks if the user has any of the roles
+# if the user has any of the roles, it returns the current user, otherwise, it raises an exception
+def require_role(required_roles: List[str]):
+    def role_checker(current_user: UserResponse = Depends(get_current_user)):
+        user_roles = set(role.name for role in current_user.roles)
+        if not any(role in user_roles for role in required_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+        return current_user
+
+    return role_checker
 
 

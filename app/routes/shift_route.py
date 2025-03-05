@@ -1,23 +1,68 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
+from typing import List
 from sqlalchemy.orm import Session
-from app.crud.shift_crud import create_shift
-from app.csp_solver import ShiftAssignmentSolver
+from app.crud.shift_crud import create_shift, edit_shift, view_shift, view_shifts_by_team
+# from app.models import Team, day_shift_team, UserConstraint
 from app.schemas.shift_schema import ShiftCreate, ShiftResponse
 from app.db_config import get_db
-from app.models import Team, User, UserConstraint
-from app.association import day_shift_team
+from app.models import User
+from app.dependencies.auth import get_current_user,require_role
 
 router = APIRouter()
-
+# Route for creating a new shift
 @router.post("/", response_model=ShiftResponse)
-async def create_shift_route(shift: ShiftCreate, db: Session = Depends(get_db)):
-    db_shift, error = create_shift(db, shift)
+async def create_new_shift(
+    shift: ShiftCreate, 
+    db: Session = Depends(get_db), 
+    # Ensure the user is an employer
+    current_user: User = Depends(require_role(["Employer"]))
+):
+
+    # create function returns a tuple, so I unpacked it
+    db_shift, error = create_shift(db, shift, current_user)
+    # If there is an error, raise an HTTPException
     if error:
-        raise HTTPException(status_code=400, detail=error)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+    
     return db_shift
 
+# Route for updating a shift
+@router.put("/{shift_id}", response_model=ShiftResponse)
+async def update_shift(
+    shift_id: int, 
+    shift: ShiftCreate, 
+    db: Session = Depends(get_db),
+    # Ensure the user is an employer 
+    current_user: User = Depends(require_role(["Employer"]))
+):
+    # Edit function returns a tuple, so I unpacked it
+    db_shift = edit_shift(db, shift_id, shift, current_user)
+    return db_shift
+
+# Route for viewing a single shift
+@router.get("/{shift_id}", response_model=ShiftResponse)
+async def get_shift(
+    shift_id: int, 
+    db: Session = Depends(get_db),
+    # Ensure the user is an employer or employee 
+    current_user: User = Depends(require_role(["Employer", "Employee"]))
+):
+    # view function returns a tuple, so I unpacked it
+    db_shift = view_shift(db, shift_id, current_user)
+    return db_shift
+# Route for viewing all shifts for a team
+@router.get("/", response_model=List[ShiftResponse])
+async def get_team_shifts(
+    db: Session = Depends(get_db),
+    # Getting the current user 
+    current_user: User = Depends(get_current_user)
+):
+    # view_shifts_by_team function returns a list of shifts
+    db_shifts = view_shifts_by_team(db, current_user)
+    return db_shifts
+
 # Route for creating a schedule by assigning shifts to users
-@router.get("/{team_id}/assign_shifts")
+@router.get("/assign-shifts/{team_id}")
 async def assign_shifts(team_id: int, db: Session = Depends(get_db)):
     # Find the team
     team = db.query(Team).filter(Team.id == team_id).first()

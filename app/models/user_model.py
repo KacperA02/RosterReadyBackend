@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, Column, Integer, String,ForeignKey
 from sqlalchemy.orm import relationship
 from app.db_config import Base
-from app.association import user_roles
+from app.association import user_roles,user_expertise
 # Creating the Users structure
 class User(Base):
     __tablename__ = "users"
@@ -22,3 +22,4 @@ class User(Base):
     invitations = relationship("TeamInvitation", back_populates="user")
     # added userConstraint relationship
     user_constraints = relationship("UserConstraint", back_populates="user")
+    expertises = relationship("Expertise", secondary=user_expertise, back_populates="users")

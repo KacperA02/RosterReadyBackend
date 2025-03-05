@@ -17,3 +17,16 @@ user_roles = Table(
     Column("user_id", ForeignKey("users.id"), primary_key=True),
     Column("role_id", ForeignKey("roles.id"), primary_key=True)
 )
+
+user_expertise = Table(
+    "user_expertise",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+    Column("expertise_id", ForeignKey("expertises.id"), primary_key=True)
+)
+shift_expertise = Table(
+    "shift_expertise",
+    Base.metadata,
+    Column("shift_id", ForeignKey("shifts.id"), primary_key=True),
+    Column("expertise_id", ForeignKey("expertises.id"), primary_key=True)
+)

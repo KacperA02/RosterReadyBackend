@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.db_config import Base
 from app.association import day_shift_team
 from app.models.user_model import User  
+from app.models.expertise_model import Expertise
 
 class Team(Base):
     __tablename__ = "teams"
@@ -24,3 +25,4 @@ class Team(Base):
     )
     # added userConstraint relationship
     user_constraints = relationship("UserConstraint", back_populates="team")
+    expertises = relationship("Expertise", back_populates="team", foreign_keys=[Expertise.team_id])

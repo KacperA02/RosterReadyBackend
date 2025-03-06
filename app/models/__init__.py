@@ -2,4 +2,9 @@ from .team_model import Team
 from .user_model import User
 from .shift_model import Shift
 from .day_model import Day
-from .user_constraint_model import UserConstraint
+from .role_model import Role
+from .expertise_model import Expertise
+from .user_availability_model import UserAvailability
+from .team_invitation_model import TeamInvitation
+
+

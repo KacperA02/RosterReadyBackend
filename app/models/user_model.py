@@ -17,9 +17,13 @@ class User(Base):
 
 
     team = relationship("Team", back_populates="users", foreign_keys=[team_id])
+    
     created_teams = relationship("Team", back_populates="creator", foreign_keys="[Team.creator_id]")
+    
     roles = relationship("Role", secondary=user_roles, back_populates="users")
+    
     invitations = relationship("TeamInvitation", back_populates="user")
-    # added userConstraint relationship
-    user_constraints = relationship("UserConstraint", back_populates="user")
+    
+    user_availability = relationship("UserAvailability", back_populates="user")
+    
     expertises = relationship("Expertise", secondary=user_expertise, back_populates="users")

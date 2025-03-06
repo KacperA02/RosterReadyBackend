@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Time, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db_config import Base
 from app.association import day_shift_team, shift_expertise
+from app.models.user_availability_model import UserAvailability
 
 class Shift(Base):
     __tablename__ = "shifts"
@@ -23,5 +24,4 @@ class Shift(Base):
         overlaps="days",
     )
     # added userConstraint relationship
-    user_constraints = relationship("UserConstraint", back_populates="shift")
     expertises = relationship("Expertise", secondary=shift_expertise, back_populates="shifts")

@@ -27,7 +27,7 @@ if not JWTSECRETALGORITHM:
 # Secret key for JWT (Use a secure key in production)
 SECRET_KEY = JWTSECRETKEY
 ALGORITHM = JWTSECRETALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

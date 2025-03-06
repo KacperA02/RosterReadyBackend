@@ -9,6 +9,7 @@ from app.routes.team_route import router as team_router
 from app.routes.shift_route import router as shift_router
 from app.routes.auth_route import router as auth_router
 from app.routes.day_route import router as day_router
+from app.routes.expertise_route import router as expertise_router
 from app.routes.user_constraint_route import router as userCon_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.crud.day_crud import create_all_days 
@@ -46,5 +47,6 @@ app.include_router(day_router, prefix="/days", tags=["Days"])
 app.include_router(userCon_router, prefix="/user-constraints", tags=["User Constraints"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(team_invitation_router, prefix="/invitation", tags=["invitations"])
+app.include_router(expertise_router, prefix="/expertise", tags=["expertises"])
 # Create all database tables at once
 Base.metadata.create_all(bind=engine)

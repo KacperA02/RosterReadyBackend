@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Annotated
 from datetime import time
+from typing import List
 
 # Schema for creating a shift
 class ShiftCreate(BaseModel):
@@ -20,6 +21,14 @@ class ShiftResponse(BaseModel):
     task: Optional[str] = None
     no_of_users: int
     team_id: int 
+
+    class Config:
+        from_attributes = True
+        
+
+
+class ShiftDaysCreate(BaseModel):
+    day_ids: List[int] 
 
     class Config:
         from_attributes = True

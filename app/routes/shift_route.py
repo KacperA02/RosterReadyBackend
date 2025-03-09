@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List
 from sqlalchemy.orm import Session
-from app.crud.shift_crud import create_shift, edit_shift, view_shift, view_shifts_by_team
+from app.crud.shift_crud import create_shift, edit_shift, view_shift, view_shifts_by_team, attach_days_to_shift, remove_days_from_shift
 # from app.models import Team, day_shift_team, UserConstraint
-from app.schemas.shift_schema import ShiftCreate, ShiftResponse
+from app.schemas.shift_schema import ShiftCreate, ShiftResponse , ShiftDaysCreate
 from app.db_config import get_db
 from app.models import User
 from app.dependencies.auth import get_current_user,require_role
@@ -27,7 +27,7 @@ async def create_new_shift(
     return db_shift
 
 # Route for updating a shift
-@router.put("/{shift_id}", response_model=ShiftResponse)
+@router.put("/specific/{shift_id}", response_model=ShiftResponse)
 async def update_shift(
     shift_id: int, 
     shift: ShiftCreate, 
@@ -40,7 +40,7 @@ async def update_shift(
     return db_shift
 
 # Route for viewing a single shift
-@router.get("/{shift_id}", response_model=ShiftResponse)
+@router.get("/specific/{shift_id}", response_model=ShiftResponse)
 async def get_shift(
     shift_id: int, 
     db: Session = Depends(get_db),
@@ -60,6 +60,26 @@ async def get_team_shifts(
     # view_shifts_by_team function returns a list of shifts
     db_shifts = view_shifts_by_team(db, current_user)
     return db_shifts
+
+# attach days to a shift
+@router.post("/days/{shift_id}")
+def attach_days_to_shift_route(
+    shift_id: int,
+    shift_days: ShiftDaysCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Employer"])) 
+):
+    return attach_days_to_shift(db, shift_id, shift_days, current_user)
+
+# delete days from a shift
+@router.delete("/days/{shift_id}")
+def remove_days_from_shift_route(
+    shift_id: int,
+    shift_days: ShiftDaysCreate,  
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Employer"]))  
+):
+    return remove_days_from_shift(db, shift_id, shift_days, current_user)
 
 # Route for creating a schedule by assigning shifts to users
 # @router.get("/assign-shifts/{team_id}")

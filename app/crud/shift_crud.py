@@ -2,7 +2,10 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.shift_model import Shift
 from app.models.team_model import Team
-from app.schemas.shift_schema import ShiftCreate
+from app.schemas.shift_schema import ShiftCreate, ShiftDaysCreate
+from app.models.day_model import Day
+from sqlalchemy.exc import IntegrityError
+from app.association import day_shift_team
 from app.models.user_model import User
 from app.schemas.user_schema import UserResponse
 
@@ -91,3 +94,92 @@ def view_shifts_by_team(db: Session, current_user: UserResponse):
         raise HTTPException(status_code=404, detail="No shifts found for this team.")
 
     return db_shifts
+
+# attach days to a shift
+def attach_days_to_shift(db: Session, shift_id: int, shift_days: ShiftDaysCreate, current_user: UserResponse):
+    # gets the shift
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found.")
+
+    # condition to check if the shift belongs to the user's team
+    if db_shift.team_id != current_user.team_id:
+        raise HTTPException(status_code=403, detail="This shift does not belong to your team.")
+
+    # Ensures the user is the creator of the team can attach days to shifts
+    team = db.query(Team).filter(Team.id == db_shift.team_id).first()
+    if team.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the team creator (Employer) can attach days to shifts.")
+
+    # Fetch the days from the database using the provided day_ids
+    days = db.query(Day).filter(Day.id.in_(shift_days.day_ids)).all()
+
+    # Check if all provided day_ids exist
+    if len(days) != len(shift_days.day_ids):
+        raise HTTPException(status_code=404, detail="One or more days not found.")
+
+    # Create associations between the shift and the days
+    # try block to catch any errors
+    try:
+        # loop through the days and add them to the day_shift_team table
+        for day in days:
+            # insert the day_shift_team data
+            db.execute(day_shift_team.insert().values(
+                day_id=day.id,
+                shift_id=db_shift.id,
+                team_id=db_shift.team_id 
+            ))
+        # commits each transaction
+        db.commit()  
+
+    # catch any integrity errors
+    except IntegrityError:
+        db.rollback() 
+        raise HTTPException(status_code=400, detail="Failed to attach days to the shift. Integrity error.")
+
+    return {"detail": "Days successfully attached to the shift."}
+
+# remove days from a shift
+def remove_days_from_shift(db: Session, shift_id: int, shift_days: ShiftDaysCreate, current_user: UserResponse):
+    # fetch the shift
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found.")
+    
+    # Condition to check if the shift belongs to the user's team
+    if db_shift.team_id != current_user.team_id:
+        raise HTTPException(status_code=403, detail="This shift does not belong to your team.")
+    
+    # condition to check if the user is the creator of the team
+    team = db.query(Team).filter(Team.id == db_shift.team_id).first()
+    if team.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the team creator (Employer) can remove days from shifts.")
+
+    # Fetch the days from the database using the provided day_ids
+    days = db.query(Day).filter(Day.id.in_(shift_days.day_ids)).all()
+
+    # condition to check if all provided day_ids exist
+    if len(days) != len(shift_days.day_ids):
+        raise HTTPException(status_code=404, detail="One or more days not found.")
+    
+    # Remove the days from the shift
+    # try block to catch any errors
+    try:
+        # loop through the days and delete them from the day_shift_team table
+        for day in days:
+            # delete the day_shift_team data
+            db.execute(
+                day_shift_team.delete().where(
+                    day_shift_team.c.day_id == day.id,
+                    day_shift_team.c.shift_id == db_shift.id,
+                    day_shift_team.c.team_id == db_shift.team_id  
+                )
+            )
+        
+        db.commit()  
+    # catch any integrity errors
+    except IntegrityError:
+        db.rollback()  
+        raise HTTPException(status_code=400, detail="Failed to remove days from the shift. Integrity error.")
+    
+    return {"detail": "Days successfully removed from the shift."}

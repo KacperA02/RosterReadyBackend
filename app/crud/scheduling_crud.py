@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models import User, UserAvailability, Shift
 from app.association import day_shift_team, user_expertise, shift_expertise
-from app.csp_solver import ShiftAssignmentSolver
 from fastapi import HTTPException
 
 def create_schedule(db: Session, team_id: int):

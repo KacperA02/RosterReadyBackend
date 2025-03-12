@@ -52,7 +52,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     # to_encode is to create a copy of the data passed for encoding
     to_encode = data.copy()
     # expire is the expiration time for the token and a fallback of 15 if it fails
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=60))
     # encoding the data with the expiration time
     to_encode.update({"exp": expire})
     # returning the encoded token

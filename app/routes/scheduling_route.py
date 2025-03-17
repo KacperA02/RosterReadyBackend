@@ -32,6 +32,7 @@ async def assign_shifts(
         user_expertise=request_data["user_expertise"],
         shift_expertise=request_data["shift_expertise"]
     )
+    print(request_data)
 
     # calling the solve function within the shiftAssignmentSolver
     result = solver.solve() 

@@ -8,8 +8,20 @@ class ShiftAssignmentSolver:
         self.shift_details = shift_details
         self.user_availability = user_availability
         # converted these into dictionaries to access easier
-        self.user_expertise = {user['user_id']: user['expertise'] for user in user_expertise}
-        self.shift_expertise = {shift['shift_id']: shift['required_expertise'] for shift in shift_expertise}
+        # Map user_id to a list of expertise_ids
+        self.user_expertise = {}
+        for user in user_expertise:
+            if user['user_id'] not in self.user_expertise:
+                self.user_expertise[user['user_id']] = []
+            self.user_expertise[user['user_id']].append(user['expertise_id'])
+
+        # Map shift_id to a list of expertise_ids
+        self.shift_expertise = {}
+        for shift in shift_expertise:
+            if shift['shift_id'] not in self.shift_expertise:
+                self.shift_expertise[shift['shift_id']] = []
+            self.shift_expertise[shift['shift_id']].append(shift['expertise_id'])
+
         
         # Initialize the constraint satisfaction problem
         self.problem = Problem()
@@ -48,7 +60,7 @@ class ShiftAssignmentSolver:
                 print(f"Possible users for shift {shift_id} on day {day_id}, slot {slot}: {possible_users}")  
                 # printing for debugging 
                 if not possible_users:
-                    print(f"⚠️ Warning: No available users for shift {shift_id} on day {day_id}, slot {slot}")
+                    print(f" Warning: No available users for shift {shift_id} on day {day_id}, slot {slot}")
                 
                 # Added the shift's available users as a variable in the problem
                 self.problem.addVariable(shift_key, possible_users)
@@ -56,6 +68,31 @@ class ShiftAssignmentSolver:
         self._add_constraints()
 
     def _add_constraints(self):
+        
+        # Expertise match constraint
+        def expertise_match(shift_key, user):
+            if user is None:
+                return False
+            # matching the correct col with a new variable
+            shift_id = shift_key[0]
+            # getting all shifts which have expertise
+            required_expertise = self.shift_expertise.get(shift_id, [])
+            # condition to check if no expertise is required, allow any user
+            if not required_expertise:
+                return True  
+            # getting all the users expertises
+            user_expertise_ids = self.user_expertise.get(user, [])
+
+            # ensuring the user matches one of the expertises
+            return any(expertise in user_expertise_ids for expertise in required_expertise)
+
+        #Applying the constraint to each variable
+        for shift_key in self.problem._variables.keys():
+            self.problem.addConstraint(
+                lambda user, shift_key=shift_key: expertise_match(shift_key, user), 
+                (shift_key,)
+            )
+        
         # Max 1 shifts per day for each user
         def max_two_shifts_per_day(*assignments):
             # Dictionary to track how many shifts each user has on each day

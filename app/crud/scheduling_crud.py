@@ -1,9 +1,13 @@
 from sqlalchemy.orm import Session
-from app.models import User, UserAvailability, Shift
+from app.models import User, UserAvailability, Shift, Week
 from app.association import day_shift_team, user_expertise, shift_expertise
 from fastapi import HTTPException
 
-def create_schedule(db: Session, team_id: int):
+def create_schedule(db: Session, team_id: int, week_id: int):
+    # checking if week exists
+    week = db.query(Week).filter(Week.id == week_id).first()
+    if not week:
+        raise HTTPException(status_code=404, detail="Week not found")
     # Get all users in the team (filter by team_id)
     users = db.query(User.id).filter(User.team_id == team_id).all()
     # Convert the list of tuples into a simple list of user IDs

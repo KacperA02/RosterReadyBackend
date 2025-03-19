@@ -244,8 +244,8 @@ def remove_expertise_from_shift(db: Session, expertise_id: int, shift_id: int, c
         raise HTTPException(status_code=404, detail="Shift not found or not in your team.")
     
     existing_association = db.query(shift_expertise).filter(
-        user_expertise.c.shift_id == shift_id,
-        user_expertise.c.expertise_id == expertise_id
+        shift_expertise.c.shift_id == shift_id,
+        shift_expertise.c.expertise_id == expertise_id
     ).first()
     
     # If no association exists, raise an error

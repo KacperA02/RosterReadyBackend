@@ -25,3 +25,5 @@ class Shift(Base):
     )
     # added userConstraint relationship
     expertises = relationship("Expertise", secondary=shift_expertise, back_populates="shifts")
+
+    assignments = relationship("Assignment", back_populates="shift", cascade="all, delete-orphan")

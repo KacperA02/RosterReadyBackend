@@ -31,3 +31,8 @@ class Team(Base):
     user_availability = relationship("UserAvailability", back_populates="team", foreign_keys=[UserAvailability.team_id])
     
     expertises = relationship("Expertise", back_populates="team", foreign_keys=[Expertise.team_id])
+    
+    assignments = relationship("Assignment", back_populates="team", cascade="all, delete-orphan")
+    
+    solutions = relationship("Solution", back_populates="team", cascade="all, delete-orphan") 
+    

@@ -1,16 +1,12 @@
 # app/schemas/team_invitation_schema.py
 from pydantic import BaseModel
-from enum import Enum
+from app.enums import InvitationStatus
 
-class InvitationStatusEnum(str, Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
-    DECLINED = "declined"
 
 class TeamInvitationBase(BaseModel):
     user_id: int
     team_id: int
-    status: InvitationStatusEnum = InvitationStatusEnum.PENDING  
+    status: InvitationStatus = InvitationStatus.PENDING 
 
 class TeamInvitationResponse(TeamInvitationBase):
     id: int

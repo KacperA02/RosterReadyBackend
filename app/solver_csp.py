@@ -143,7 +143,8 @@ class ShiftAssignmentSolver:
     def solve(self):
         # Get all solutions for the problem (valid shift assignments)
         solutions = self.problem.getSolutions()
-        
+        if len(solutions) > 5:
+            solutions = solutions[:5]
         if not solutions:
             # If no solutions exist, return an empty list and a message
             print(" No valid shift assignments found!")

@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from app.models.team_invitation_model import TeamInvitation
 from app.models.user_model import User
 from app.models.team_model import Team
-from app.schemas.team_invitation_schema import InvitationStatusEnum
+from app.enums import InvitationStatus
 from app.dependencies.auth import get_current_user
 from app.schemas.user_schema import UserResponse
 from app.models.role_model import Role
@@ -68,7 +68,7 @@ def accept_invitation(db: Session, user_id: int, invitation_id: int):
         return None, "Invitation not found or user not authorized."
     
     # Update the invitation status to accepted
-    invitation.status = InvitationStatusEnum.ACCEPTED
+    invitation.status = InvitationStatus.ACCEPTED
     db.commit()
 
     # Add the user to the team now that they’ve accepted the invitation
@@ -94,7 +94,7 @@ def reject_invitation(db: Session, user_id: int, invitation_id: int):
         return None, "Invitation not found or user not authorized."
     
     # Update the invitation status to rejected
-    invitation.status = InvitationStatusEnum.DECLINED
+    invitation.status = InvitationStatus.DECLINED
     db.commit()
 
     return invitation, None
@@ -102,6 +102,6 @@ def reject_invitation(db: Session, user_id: int, invitation_id: int):
 def get_pending_invitations(db: Session, user_id: int):
     invitations = db.query(TeamInvitation).filter(
         TeamInvitation.user_id == user_id,
-        TeamInvitation.status == "pending"
+        TeamInvitation.status == "PENDING"
     ).all()
     return invitations

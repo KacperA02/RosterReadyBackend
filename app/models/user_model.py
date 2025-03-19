@@ -27,3 +27,5 @@ class User(Base):
     user_availability = relationship("UserAvailability", back_populates="user")
     
     expertises = relationship("Expertise", secondary=user_expertise, back_populates="users")
+    
+    assignments = relationship("Assignment", back_populates="user", cascade="all, delete-orphan")

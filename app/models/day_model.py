@@ -25,3 +25,5 @@ class Day(Base):
     )
     
     user_availability = relationship("UserAvailability", back_populates="day", foreign_keys=[UserAvailability.day_id])
+    
+    assignments = relationship("Assignment", back_populates="day", cascade="all, delete-orphan")

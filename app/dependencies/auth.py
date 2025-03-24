@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import jwt
 from typing import List
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Cookie
 # A utility for handling OAuth2-based authentication (used to pass the token).
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -63,31 +63,36 @@ def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 
+
+
+
 # created a function to get the current user using the token passed
 # this function gets the current user by decoding the token and checking if the user exists
 # if the user exists, it returns the user, otherwise, it raises an exception
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Exception to raise if the credentials are invalid
+async def get_current_user(access_token: str = Cookie(None), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # try to decode the token, if it fails, raise the exception
+
+    if not access_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         if email is None:
             raise credentials_exception
     except InvalidTokenError:
         raise credentials_exception
-    # get the user by email
+
     user = get_user_by_email(db, email)
     if user is None:
         raise credentials_exception
-    # had to use a list comprehension to get the roles of the user
+
     roles = [RoleResponse(id=role.id, name=role.name) for role in user.roles]
-    # return the user response
+
     return UserResponse(
         id=user.id,
         first_name=user.first_name,

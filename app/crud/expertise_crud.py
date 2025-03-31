@@ -114,24 +114,39 @@ def delete_expertise(db: Session, expertise_id: int, current_user: UserResponse)
     db.commit()
     
     return {"detail": "Expertise deleted successfully."}
+
 # get all expertise for a team
 def view_all_expertise_of_team(db: Session, current_user: UserResponse):
-    # Check if the team exists
     team = db.query(Team).filter(Team.id == current_user.team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found.")
     
-    # Ensure the user is an employer and part of the team
     if team.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the employer (team creator) can view expertise for the team.")
     
-    # Get all expertise associated with the team
     expertise_list = db.query(Expertise).filter(Expertise.team_id == current_user.team_id).all()
     
     if not expertise_list:
-        raise HTTPException(status_code=404, detail="No expertise found for your team.")
+        return []  # Return empty array if no expertise is found
     
-    return expertise_list
+    response = []
+    for expertise in expertise_list:
+        # Joining the many to many of user expertise to match witht the expertise ids
+        users = db.query(User).join(user_expertise).filter(user_expertise.c.expertise_id == expertise.id).all()
+        
+        # Joining the many to many of shift expertise to match witht the expertise ids
+        shifts = db.query(Shift).join(Shift.expertises).filter(Expertise.id == expertise.id).all()
+
+        response.append({
+            "id": expertise.id,
+            "name": expertise.name,
+            "team_id": expertise.team_id,
+            "users": [{"id": user.id, "first_name": user.first_name, "last_name": user.last_name} for user in users],
+            "shifts": [{"id": shift.id, "name": shift.name} for shift in shifts] 
+        })
+
+    return response
+
 
 # Assign expertise to a user
 def add_expertise_to_user(db: Session, expertise_id: int, user_id: int, current_user: UserResponse):

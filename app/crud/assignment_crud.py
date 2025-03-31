@@ -6,25 +6,68 @@ from app.models.role_model import Role
 from fastapi import HTTPException
 from app.schemas.user_schema import UserResponse
 
-def view_all_assignments(db: Session, solution_id: int, current_user: UserResponse):
-    # Get the solution
-    solution = db.query(Solution).filter(Solution.id == solution_id).first()
-    if not solution:
-        raise HTTPException(status_code=404, detail="Solution not found.")
+from sqlalchemy.orm import joinedload
 
+def view_all_assignments(db: Session, week_id: int, current_user: UserResponse):
     # Get the team_id of the current user
     team_id = current_user.team_id
-    
-    # Filtering the assignments to check for that logged in user
-    assignments = db.query(Assignment).filter(
-        Assignment.solution_id == solution_id,
-        Assignment.team_id == team_id 
+
+    # Find all solutions that belong to the given week and team
+    solutions = db.query(Solution).filter(
+        Solution.week_id == week_id,
+        Solution.team_id == team_id
     ).all()
 
-    if not assignments:
-        raise HTTPException(status_code=404, detail="No assignments found for this solution or team.")
+    if not solutions:
+        raise HTTPException(status_code=404, detail="No solutions found for this week and team.")
 
-    return assignments
+    # Extract solution IDs
+    solution_ids = [sol.id for sol in solutions]
+
+    # Retrieve all assignments, eagerly loading user, shift, and day details
+    assignments_by_solution = {}
+    for sol in solutions:
+        assignments = db.query(Assignment).filter(
+            Assignment.solution_id == sol.id,
+            Assignment.team_id == team_id
+        ).options(
+            joinedload(Assignment.user),  
+            joinedload(Assignment.shift),  
+            joinedload(Assignment.day)  
+        ).all()
+
+        # Format assignments with user, shift, day, and locked status
+        formatted_assignments = [
+            {
+                "assignment_id": assignment.id,
+                "locked": assignment.locked,  
+                "user": {
+                    "id": assignment.user.id,
+                    "first_name": assignment.user.first_name,
+                    "last_name": assignment.user.last_name
+                } if assignment.user else None,
+                "shift": {
+                    "id": assignment.shift.id,
+                    "name": assignment.shift.name,
+                    "time_start": assignment.shift.time_start,
+                    "time_end": assignment.shift.time_end,
+                    "task": assignment.shift.task,  
+                } if assignment.shift else None,
+                "day": {
+                    "id": assignment.day.id,
+                    "name": assignment.day.name,    
+                } if assignment.day else None
+            }
+            for assignment in assignments
+        ]
+
+        assignments_by_solution[f"solution_{sol.id}"] = formatted_assignments
+
+    if not assignments_by_solution:
+        raise HTTPException(status_code=404, detail="No assignments found for this week and team.")
+
+    return assignments_by_solution
+
 
 def toggle_locked(db: Session, assignment_id: int, current_user: UserResponse):
     # Filtering assignments

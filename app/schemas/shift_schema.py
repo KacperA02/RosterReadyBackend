@@ -3,6 +3,12 @@ from typing import Optional, Annotated
 from datetime import time
 from typing import List
 
+class DayResponse(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True 
 # Schema for creating a shift
 class ShiftCreate(BaseModel):
     name: str
@@ -20,7 +26,8 @@ class ShiftResponse(BaseModel):
     time_end: time
     task: Optional[str] = None
     no_of_users: int
-    team_id: int 
+    team_id: int
+    days: List[DayResponse]
 
     class Config:
         from_attributes = True

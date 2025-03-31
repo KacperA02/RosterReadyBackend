@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.week_model import Week
 # working with dates and times and timedelta is for date arithmetic
 from datetime import datetime, timedelta
+from typing import List  
+
 # This function calculates the exact dates of the chosen week for the current year
 def get_week_start_end(year: int, week: int):
     # getting the first day of the year by inputing the year, month and date 
@@ -39,3 +41,7 @@ def create_all_weeks(db: Session, year: int):
             print(f"Added Week {week_num}: {start_date} - {end_date} to the database.")
    
     db.commit()
+    
+
+def get_all_weeks(db: Session) -> List[Week]:
+    return db.query(Week).all()

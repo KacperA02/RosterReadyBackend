@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from app.schemas.team_schema import TeamCreate, TeamResponse
+from app.schemas.team_schema import TeamCreate, TeamResponse, UserI
 from app.crud.team_crud import create_team, get_team, update_team_users
 from app.db_config import get_db
 from app.schemas.user_schema import UserResponse
@@ -20,20 +20,22 @@ async def create_team_route(
     return new_team
 
 @router.get("/{team_id}", response_model=TeamResponse)
-async def get_team_route(team_id: int, db: Session = Depends(get_db)):
-    team = get_team(db, team_id)
+async def get_team_route(team_id: int, db: Session = Depends(get_db), current_user: UserResponse = Depends(get_current_user)):
+    team = get_team(db, team_id, current_user)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    # Had to manually map the linking table as it was giving back and empty array
-    user_ids = [user.id for user in team.users]
+    users = [
+        UserI(id=user.id, email=user.email, first_name=user.first_name, last_name=user.last_name)
+        for user in team.users
+    ]
 
-    
+    # Return team details along with populated users
     return TeamResponse(
         id=team.id,
         name=team.name,
         creator_id=team.creator_id,
-        user_ids=user_ids  
+        user_ids=users  
     )
 
 @router.put("/{team_id}/users", response_model=TeamResponse)

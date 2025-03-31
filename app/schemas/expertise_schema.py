@@ -1,6 +1,14 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
+class UserSchema(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    
+class ShiftSchema(BaseModel):
+    id: int
+    name: str
 
 class ExpertiseCreate(BaseModel):
     name: str
@@ -9,6 +17,8 @@ class ExpertiseCreate(BaseModel):
 class ExpertiseResponse(ExpertiseCreate):
     id: int
     team_id: int
+    users: List[UserSchema]
+    shifts: List[ShiftSchema]
 
     class Config:
         from_attributes = True

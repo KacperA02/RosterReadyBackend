@@ -35,7 +35,7 @@ def create_team(db: Session, team: TeamCreate, current_user: UserResponse):
 
 
 # getting a single team
-def get_team(db: Session, team_id: int):
+def get_team(db: Session, team_id: int, current_user:UserResponse):
     team = db.query(Team).options(joinedload(Team.users)).filter(Team.id == team_id).first()
     if not team:
         return None

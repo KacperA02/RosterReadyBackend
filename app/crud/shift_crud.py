@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.shift_model import Shift
 from app.models.team_model import Team
-from app.schemas.shift_schema import ShiftCreate, ShiftDaysCreate
+from app.schemas.shift_schema import ShiftCreate, ShiftDaysCreate, ShiftResponse,DayResponse
 from app.models.day_model import Day
 from sqlalchemy.exc import IntegrityError
 from app.association import day_shift_team
@@ -87,13 +87,41 @@ def view_shift(db: Session, shift_id: int, current_user: UserResponse):
 
 # view all shifts related to the team
 def view_shifts_by_team(db: Session, current_user: UserResponse):
-    # Fetches all shifts related to the team
+    # Fetch all shifts related to the user's team
     db_shifts = db.query(Shift).filter(Shift.team_id == current_user.team_id).all()
-    # checks if there are any shifts
+
     if not db_shifts:
         raise HTTPException(status_code=404, detail="No shifts found for this team.")
+    
+    shifts_with_days = []
 
-    return db_shifts
+    # Loop through each shift and get associated days
+    for shift in db_shifts:
+        # Fetch associated days using the day_shift_team association table
+        associated_days = db.query(Day).join(
+            day_shift_team, day_shift_team.c.day_id == Day.id
+        ).filter(day_shift_team.c.shift_id == shift.id).all()
+
+        # Convert days to DayResponse model
+        days_response = [DayResponse.model_validate(day) for day in associated_days]
+
+
+        # Convert shift to ShiftResponse model, including the associated days
+        shift_response = ShiftResponse(
+            id=shift.id,
+            name=shift.name,
+            time_start=shift.time_start,
+            time_end=shift.time_end,
+            no_of_users=shift.no_of_users,
+            team_id=shift.team_id,
+            task=shift.task,
+            days=days_response
+        )
+
+        # Append the shift with its days to the result list
+        shifts_with_days.append(shift_response)
+    
+    return shifts_with_days
 
 # attach days to a shift
 def attach_days_to_shift(db: Session, shift_id: int, shift_days: ShiftDaysCreate, current_user: UserResponse):
@@ -183,3 +211,4 @@ def remove_days_from_shift(db: Session, shift_id: int, shift_days: ShiftDaysCrea
         raise HTTPException(status_code=400, detail="Failed to remove days from the shift. Integrity error.")
     
     return {"detail": "Days successfully removed from the shift."}
+

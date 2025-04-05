@@ -4,7 +4,7 @@ from app.crud.assignment_crud import *
 from app.schemas.user_schema import UserResponse
 from app.models.assignment_model import Assignment
 from app.models.solution_model import Solution
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.dependencies.auth import require_role, get_current_user
 
 

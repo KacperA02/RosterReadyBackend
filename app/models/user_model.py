@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String,ForeignKey
 from sqlalchemy.orm import relationship
-from app.db_config import Base
+from app.dependencies.db_config import Base
 from app.association import user_roles,user_expertise
 # Creating the Users structure
 class User(Base):

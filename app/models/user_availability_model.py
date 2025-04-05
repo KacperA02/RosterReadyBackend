@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, Boolean, String
 from sqlalchemy.orm import relationship
-from app.db_config import Base
+from app.dependencies.db_config import Base
 
 class UserAvailability(Base):
     __tablename__ = "user_availability"

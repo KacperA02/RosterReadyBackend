@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.schemas.day_schema import DayCreate, DayResponse
 from app.crud.day_crud import get_day,create_day
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 
 router = APIRouter()
 

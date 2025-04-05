@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Date
 from sqlalchemy.orm import relationship
-from app.db_config import Base
+from app.dependencies.db_config import Base
 
 class Week(Base):
     __tablename__ = "weeks"

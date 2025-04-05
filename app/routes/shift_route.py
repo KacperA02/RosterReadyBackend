@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from app.crud.shift_crud import create_shift, edit_shift, view_shift, view_shifts_by_team, attach_days_to_shift, remove_days_from_shift
 from app.schemas.shift_schema import ShiftCreate, ShiftResponse , ShiftDaysCreate
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.models import User
 
 from app.dependencies.auth import get_current_user,require_role

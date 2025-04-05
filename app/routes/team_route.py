@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.schemas.team_schema import TeamCreate, TeamResponse, UserI
 from app.crud.team_crud import create_team, get_team, update_team_users
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.schemas.user_schema import UserResponse
 from app.dependencies.auth import get_current_user
 

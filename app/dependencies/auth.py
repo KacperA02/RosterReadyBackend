@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, status, Cookie
 # A utility for handling OAuth2-based authentication (used to pass the token).
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.models.user_model import User
 from app.schemas.user_schema import UserResponse
 from jwt.exceptions import InvalidTokenError

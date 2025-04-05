@@ -4,7 +4,7 @@ from app.schemas.user_availability_schema import UserAvailabilityCreate
 from app.crud.user_availability_crud import create_user_availability, delete_user_availability, get_team_availabilities, get_user_availabilities, toggle_approval  
 from app.dependencies.auth import require_role
 from app.models import User
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 
 router = APIRouter()
 # creates a list of request availabilities

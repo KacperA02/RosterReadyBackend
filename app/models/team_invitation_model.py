@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime,Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.db_config import Base
+from app.dependencies.db_config import Base
 from app.enums import InvitationStatus
 
 class TeamInvitation(Base):

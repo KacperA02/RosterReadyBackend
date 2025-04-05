@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.db_config import Base
+from app.dependencies.db_config import Base
 from app.association import day_shift_team
 from app.models.user_model import User  
 from app.models.expertise_model import Expertise

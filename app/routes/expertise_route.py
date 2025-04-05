@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from app.crud.expertise_crud import *
 from app.schemas.expertise_schema import *
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.models import User
 from app.dependencies.auth import require_role
 

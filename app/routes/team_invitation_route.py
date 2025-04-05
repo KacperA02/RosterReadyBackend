@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.crud.team_invitation_crud import invite_user_to_team, accept_invitation, reject_invitation, get_pending_invitations
 from app.schemas.team_invitation_schema import TeamInvitationResponse
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.dependencies.auth import get_current_user
 from app.schemas.user_schema import UserResponse
 

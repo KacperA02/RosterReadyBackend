@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, Integer, ForeignKey
-from app.db_config import Base
+from app.dependencies.db_config import Base
 
 
 # Association table for many-to-many relationship between Day, Shift, and Team

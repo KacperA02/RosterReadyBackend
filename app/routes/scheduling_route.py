@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 from app.crud.scheduling_crud import create_schedule
 from fastapi import APIRouter, Depends, HTTPException
 from app.models import User, Solution, Assignment
 import datetime
 from app.dependencies.auth import require_role
-from app.solver_csp import ShiftAssignmentSolver
+from app.CSPs.solver_csp import ShiftAssignmentSolver
 from app.schemas.schedule_schema import ShiftAssignmentResponse
 
 router = APIRouter()

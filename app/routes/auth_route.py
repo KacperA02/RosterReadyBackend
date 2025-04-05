@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 # Import the functions from auth.py
 from app.dependencies.auth import create_access_token, verify_password, get_user_by_email, get_current_user
-from app.db_config import get_db
+from app.dependencies.db_config import get_db
 # import the Token and LoginRequest schemas
 from app.schemas.auth_schema import Token, LoginRequest  
 from app.schemas.user_schema import UserResponse

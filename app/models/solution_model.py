@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, DateTime,Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.db_config import Base
+from app.dependencies.db_config import Base
 from app.enums import SolutionStatus
 class Solution(Base):
     __tablename__ = 'solutions'

@@ -19,6 +19,7 @@ from app.crud.role_crud import seed_roles
 from app.routes.scheduling_route import router as scheduling_router
 from app.routes.team_invitation_route import router as team_invitation_router
 from app.routes.week_route import router as week_router
+from app.routes.solution_route import router as solution_router
 # lifespan runs on start up and shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,6 +50,7 @@ app.include_router(shift_router, prefix="/shifts", tags=["Shifts"])
 app.include_router(day_router, prefix="/days", tags=["Days"])
 app.include_router(scheduling_router, prefix="/schedule", tags=["Schedules"])
 app.include_router(assignment_router, prefix="/assignments", tags=["Assignments"])
+app.include_router(solution_router, prefix="/solutions", tags=["Solutions"])
 app.include_router(week_router, prefix="/weeks", tags=["Weeks"])
 app.include_router(user_availability_router, prefix="/available", tags=["User-available"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])

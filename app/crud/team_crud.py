@@ -59,11 +59,3 @@ def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
 
     return team, None
 
-# def get_users_for_team(db: Session, team_id: int):
-#     return db.query(User).join(team_user).filter(team_user.c.team_id == team_id).all()
-
-# def get_shifts_for_team(db: Session, team_id: int):
-#     return db.query(Shift).join(day_shift_team).filter(day_shift_team.c.team_id == team_id).all()
-
-# def get_days_for_team(db: Session, team_id: int):
-#     return db.query(Day).join(day_shift_team).filter(day_shift_team.c.team_id == team_id).all()

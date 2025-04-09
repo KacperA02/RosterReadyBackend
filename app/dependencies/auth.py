@@ -10,9 +10,8 @@ from sqlalchemy.orm import Session
 from app.dependencies.db_config import get_db
 from app.models.user_model import User
 from app.schemas.user_schema import UserResponse
-from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
-from app.schemas.role_schema import RoleResponse
+
 load_dotenv()
 
 # Get the database URL from environment variables
@@ -29,17 +28,16 @@ SECRET_KEY = JWTSECRETKEY
 ALGORITHM = JWTSECRETALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for handling token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # created a function to hash the password using the hash method from passlib
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
-
 
 # created a function to verify the password using the verify method from passlib
 def verify_password(plain_password, hashed_password):

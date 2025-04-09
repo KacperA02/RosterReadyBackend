@@ -15,12 +15,11 @@ class User(Base):
     day_off_count = Column(Integer, default=0)  # Set default value to 0
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
-
+    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    
     team = relationship("Team", back_populates="users", foreign_keys=[team_id])
     
     created_teams = relationship("Team", back_populates="creator", foreign_keys="[Team.creator_id]")
-    
-    roles = relationship("Role", secondary=user_roles, back_populates="users")
     
     invitations = relationship("TeamInvitation", back_populates="user")
     

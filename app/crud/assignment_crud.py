@@ -116,3 +116,53 @@ def get_assignments_for_user_week(db: Session, user_id: int, week_id: int):
     ]
 
     return result
+
+def get_assignments_by_solution(db: Session, solution_id: int, current_user: UserResponse):
+    team_id = current_user.team_id
+
+    # Verify the solution exists and belongs to the user's team
+    solution = db.query(Solution).filter(
+        Solution.id == solution_id,
+        Solution.team_id == team_id
+    ).first()
+
+    if not solution:
+        raise HTTPException(status_code=404, detail="Solution not found for your team.")
+
+    # Fetch all assignments for the solution
+    assignments = db.query(Assignment).filter(
+        Assignment.solution_id == solution_id,
+        Assignment.team_id == team_id
+    ).options(
+        joinedload(Assignment.user),
+        joinedload(Assignment.shift),
+        joinedload(Assignment.day)
+    ).all()
+
+    if not assignments:
+        raise HTTPException(status_code=404, detail="No assignments found for this solution.")
+
+    # Format and return the assignments
+    return [
+        {
+            "assignment_id": a.id,
+            "locked": a.locked,
+            "user": {
+                "id": a.user.id,
+                "first_name": a.user.first_name,
+                "last_name": a.user.last_name
+            } if a.user else None,
+            "shift": {
+                "id": a.shift.id,
+                "name": a.shift.name,
+                "time_start": a.shift.time_start,
+                "time_end": a.shift.time_end,
+                "task": a.shift.task
+            } if a.shift else None,
+            "day": {
+                "id": a.day.id,
+                "name": a.day.name
+            } if a.day else None
+        }
+        for a in assignments
+    ]

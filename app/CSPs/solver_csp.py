@@ -143,13 +143,14 @@ class ShiftAssignmentSolver:
     def solve(self):
         # Get all solutions for the problem (valid shift assignments)
         solutions = self.problem.getSolutions()
-        if len(solutions) > 5:
-            solutions = solutions[:5]
+        total_solutions = len(solutions)
+        
+        
         if not solutions:
             # If no solutions exist, return an empty list and a message
             print(" No valid shift assignments found!")
             return {"assignments": [], "total_solutions": 0}
-
+        solutions = solutions[:1]  # Limit to the first solution for demonstration purposes
         formatted_solutions = []
         for solution in solutions:
             formatted_assignment = []
@@ -168,5 +169,5 @@ class ShiftAssignmentSolver:
 
         return {
             "assignments": formatted_solutions,
-            "total_solutions": len(solutions)
+            "total_solutions": total_solutions
         }

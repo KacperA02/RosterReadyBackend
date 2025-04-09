@@ -22,3 +22,5 @@ class WeekResponse(WeekBase):
     
     class Config:
         from_attributes = True  
+        
+

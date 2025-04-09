@@ -69,16 +69,4 @@ def create_schedule(db: Session, team_id: int, week_id: int):
         "user_expertise": [{"user_id": ue[0], "expertise_id": ue[1]} for ue in user_expertise_list],
     }
 
-    # print(request_data)
-    # # return
-    # # Call the solver
-    # solver = ShiftAssignmentSolver(
-    #     request_data["users"],
-    #     request_data["shifts"],
-    #     request_data["shift_details"],
-    #     request_data["user_availability"],
-    #     request_data["user_expertise"],
-    #     request_data["shift_expertise"]
-    # )
-
     return request_data

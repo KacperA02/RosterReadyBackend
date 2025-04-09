@@ -35,3 +35,11 @@ async def get_user_assignments(
     current_user: UserResponse = Depends(get_current_user)
 ):
     return get_assignments_for_user_week(db, current_user.id, week_id)
+
+@router.get("/single/{solution_id}")
+async def get_assignments_for_solution(
+    solution_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(require_role(["Employer"]))
+):
+    return get_assignments_by_solution(db, solution_id, current_user)

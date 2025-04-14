@@ -122,4 +122,13 @@ def require_role(required_roles: List[str]):
 
     return role_checker
 
-
+def decode_access_token(token: str):
+    try:
+        print("[WS] Attempting to decode token")
+        # Decode the token with your secret key and algorithm
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")

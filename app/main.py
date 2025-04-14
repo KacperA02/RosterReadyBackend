@@ -20,6 +20,7 @@ from app.routes.scheduling_route import router as scheduling_router
 from app.routes.team_invitation_route import router as team_invitation_router
 from app.routes.week_route import router as week_router
 from app.routes.solution_route import router as solution_router
+from app.routes.websocket_route import router as websocket_router
 # lifespan runs on start up and shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,5 +58,6 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(team_invitation_router, prefix="/invitation", tags=["invitations"])
 app.include_router(expertise_router, prefix="/expertise", tags=["expertises"])
 # Create all database tables at once
+app.include_router(websocket_router, tags=["WebSocket"])
 Base.metadata.create_all(bind=engine)
 

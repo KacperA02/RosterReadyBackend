@@ -60,10 +60,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
-
-
-
-
 # created a function to get the current user using the token passed
 # this function gets the current user by decoding the token and checking if the user exists
 # if the user exists, it returns the user, otherwise, it raises an exception

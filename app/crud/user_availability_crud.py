@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
 from fastapi import HTTPException
 from app.models import UserAvailability
 from app.schemas.user_availability_schema import UserAvailabilityCreate
@@ -63,20 +64,35 @@ def delete_user_availability(db: Session, availability_id: int, current_user: Us
 
 # gets the availabilities of the team
 def get_team_availabilities(db: Session, current_user: User):
-    # gets the team of the current user
+    # Ensure user is authorized (creator of the team)
     team = db.query(Team).filter(Team.id == current_user.team_id).first()
-    
-    # if the team does not exist or the user is not the creator of the team, raise an exception
     if team is None or team.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to view team availabilities")
-    
-    # Return all availabilities for the team
-    return db.query(UserAvailability).filter(UserAvailability.team_id == current_user.team_id).all()
+
+    # Return all availabilities for the team with relationships
+    return (
+        db.query(UserAvailability)
+        .options(
+            joinedload(UserAvailability.user),
+            joinedload(UserAvailability.day),
+            joinedload(UserAvailability.team)
+        )
+        .filter(UserAvailability.team_id == current_user.team_id)
+        .all()
+    )
 
 # gets the availabilities of the user
 def get_user_availabilities(db: Session, current_user: User):
-    # Ensure the user_id matches the current user id
-    return db.query(UserAvailability).filter(UserAvailability.user_id == current_user.id).all()
+    return (
+        db.query(UserAvailability)
+        .options(
+            joinedload(UserAvailability.day),
+            joinedload(UserAvailability.team),
+            joinedload(UserAvailability.user) 
+        )
+        .filter(UserAvailability.user_id == current_user.id)
+        .all()
+    )
 
 # toggles the approval status of the availability
 def toggle_approval(db: Session, availability_id: int, current_user: User):

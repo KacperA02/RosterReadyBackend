@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.user_availability_schema import UserAvailabilityCreate
 from app.crud.user_availability_crud import create_user_availability, delete_user_availability, get_team_availabilities, get_user_availabilities, toggle_approval  
@@ -8,6 +9,8 @@ from app.dependencies.db_config import get_db
 from app.services.websocket_manager import manager 
 from app.models.team_model import Team
 from app.models.user_availability_model import UserAvailability
+from app.schemas.user_availability_schema import UserAvailabilityResponse
+
 
 router = APIRouter()
 # creates a list of request availabilities
@@ -24,7 +27,7 @@ async def create_availability(
     team = db.query(Team).filter(Team.id == current_user.team_id).first()
     
     if team:
-        employer_id = team.creator_id  # Assume this is the employer's user ID
+        employer_id = team.creator_id  
         if employer_id:
             # Send notification to employer via WebSocket
             await manager.send_to_user(str(employer_id), f"Employee {current_user.first_name} has updated availability.")
@@ -47,7 +50,7 @@ async def delete_availability(
     return delete_user_availability(db, availability_id, current_user)
 
 # gets the availabilities of the team
-@router.get("/team")
+@router.get("/team", response_model=List[UserAvailabilityResponse])
 async def get_team_availabilities_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["Employer"]))
@@ -55,7 +58,7 @@ async def get_team_availabilities_route(
     return get_team_availabilities(db, current_user)
 
 # gets the availabilities of the user
-@router.get("/user")
+@router.get("/user", response_model=List[UserAvailabilityResponse])
 async def get_user_availabilities_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["Employee", "Employer"])) 

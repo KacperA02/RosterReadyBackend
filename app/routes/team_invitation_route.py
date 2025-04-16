@@ -1,30 +1,44 @@
 # app/routes/team_invitations_routes.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from sqlalchemy.orm import Session
-from app.crud.team_invitation_crud import invite_user_to_team, accept_invitation, reject_invitation, get_pending_invitations
-from app.schemas.team_invitation_schema import TeamInvitationResponse
+from app.crud.team_invitation_crud import *
+from app.schemas.team_invitation_schema import *
 from app.dependencies.db_config import get_db
 from app.dependencies.auth import get_current_user
 from app.schemas.user_schema import UserResponse
 from app.services.websocket_manager import manager
 from app.models.team_model import Team
+from sqlalchemy import or_
+from app.models.user_model import User
+
 
 router = APIRouter()
 # inviting a specifc user to a team
-@router.post("/invite/{user_id}", response_model=TeamInvitationResponse)
+@router.post("/invite", response_model=TeamInvitationResponse)
 async def invite_user(
-    user_id: int, 
-    db: Session = Depends(get_db), 
+    identifier: str = Body(..., embed=True),  # email or mobile_number
+    db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user)
 ):
-    invitation = invite_user_to_team(db, user_id, current_user)
+    # Look up user by email or mobile number
+    invited_user = db.query(User).filter(
+        or_(User.email == identifier, User.mobile_number == identifier)
+    ).first()
 
-    # WebSocket Notification to the invited user
+    if not invited_user:
+        raise HTTPException(
+            status_code=404, 
+            detail="User not found with that email or mobile number."
+        )
+
+    invitation = invite_user_to_team(db, invited_user.id, current_user)
+
+    # Optional: send WebSocket notification
     await manager.send_to_user(
-        str(user_id), 
+        str(invited_user.id), 
         f"{current_user.first_name} has invited you to join their team."
     )
-    print(f"[WS] Invitation sent to user {user_id}")
+    print(f"[WS] Invitation sent to user {invited_user.id}")
 
     return invitation
 
@@ -67,10 +81,24 @@ async def reject_invitation_route(
 
 
 # view all pending invitations for the current user
-@router.get("/", response_model=list[TeamInvitationResponse])
+@router.get("/", response_model=list[UserPendingInvitationResponse])
 async def get_my_pending_invitations(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    invitations = get_pending_invitations(db, current_user.id)
+    return get_pending_invitations(db, current_user.id)
+
+@router.get("/team", response_model=list[TeamPendingInvitationResponse])
+async def get_pending_invitations_for_team_route(
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.team_id:
+        raise HTTPException(status_code=404, detail="User is not part of any team.")
+    
+    invitations = get_pending_invitations_for_team(db, current_user.team_id)
+
+    if not invitations:
+        raise HTTPException(status_code=404, detail="No pending invitations for this team.")
+
     return invitations

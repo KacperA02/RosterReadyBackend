@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends, HTTPException, status
 from app.models.team_invitation_model import TeamInvitation
 from app.models.user_model import User
@@ -100,8 +100,18 @@ def reject_invitation(db: Session, user_id: int, invitation_id: int):
     return invitation, None
 
 def get_pending_invitations(db: Session, user_id: int):
-    invitations = db.query(TeamInvitation).filter(
+    return db.query(TeamInvitation).options(
+        joinedload(TeamInvitation.team)
+    ).filter(
         TeamInvitation.user_id == user_id,
-        TeamInvitation.status == "PENDING"
+        TeamInvitation.status == InvitationStatus.PENDING
     ).all()
-    return invitations
+
+
+def get_pending_invitations_for_team(db: Session, team_id: int):
+    return db.query(TeamInvitation).options(
+        joinedload(TeamInvitation.user)
+    ).filter(
+        TeamInvitation.team_id == team_id,
+        TeamInvitation.status == InvitationStatus.PENDING
+    ).all()

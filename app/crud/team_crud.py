@@ -41,6 +41,14 @@ def get_team(db: Session, team_id: int, current_user:UserResponse):
         return None
     return team
 
+def get_team_users(db: Session, team_id: int, current_user: UserResponse):
+    team = (
+        db.query(Team)
+        .options(joinedload(Team.users))
+        .filter(Team.id == team_id)
+        .first()
+    )
+    return team
 # updating the users
 def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
     # Fetch the team
@@ -58,4 +66,5 @@ def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
     db.commit()
 
     return team, None
+
 

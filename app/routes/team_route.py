@@ -10,7 +10,7 @@ from app.dependencies.auth import require_role
 
 router = APIRouter()
 
-@router.post("/", response_model=TeamResponse)
+@router.post("/", response_model=TeamCreate)
 async def create_team_route(
     team: TeamCreate, 
     current_user: UserResponse = Depends(get_current_user),  

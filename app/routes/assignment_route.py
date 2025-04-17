@@ -15,7 +15,7 @@ router = APIRouter()
 async def get_assignments_for_solution(
     week_id: int,
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_role(["Employer"]))
+    current_user: UserResponse = Depends(require_role(["Employer", "Employee"]))
 ):
     return view_all_assignments(db, week_id, current_user)
 
@@ -40,6 +40,6 @@ async def get_user_assignments(
 async def get_assignments_for_solution(
     solution_id: int,
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_role(["Employer"]))
+    current_user: UserResponse = Depends(require_role(["Employer", "Employee"]))
 ):
     return get_assignments_by_solution(db, solution_id, current_user)

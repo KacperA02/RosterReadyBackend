@@ -1,4 +1,3 @@
-# app/services/websocket_manager.py
 from typing import Dict, List
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState

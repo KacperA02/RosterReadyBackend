@@ -81,3 +81,45 @@ def add_users_to_team(team_id: int, new_users_ids: list[int], db: Session = Depe
     if error:
         raise HTTPException(status_code=400, detail=error)
     return team
+
+@router.put("/{team_id}/edit", response_model=TeamResponse)
+def update_team_name_route(
+    team_id: int,
+    name_update: TeamCreate,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    updated_team, error = update_team_name(db, team_id, name_update.name, current_user)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    
+    users = [
+        UserI(
+            id=user.id,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+        )
+        for user in updated_team.users
+    ]
+
+    return TeamResponse(
+        id=updated_team.id,
+        name=updated_team.name,
+        creator_id=updated_team.creator_id,
+        user_ids=users,
+        employee_count=len(updated_team.users),
+        shift_count=len(updated_team.shifts),
+        expertise_count=len(updated_team.expertises),
+    )
+
+@router.delete("/{team_id}", status_code=204)
+def delete_team_route(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    success, error = delete_team(db, team_id, current_user)
+    if not success:
+        raise HTTPException(status_code=400, detail=error)
+    return

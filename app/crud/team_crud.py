@@ -6,7 +6,7 @@ from app.models.day_model import Day
 from app.models.role_model import Role
 from app.schemas.team_schema import TeamCreate
 from app.schemas.user_schema import UserResponse
-# from app.association import team_user, day_shift_team
+from app.association import day_shift_team
 
 
 def create_team(db: Session, team: TeamCreate, current_user: UserResponse):
@@ -67,4 +67,50 @@ def update_team_users(db: Session, team_id: int, new_user_ids: list[int]):
 
     return team, None
 
+def update_team_name(db: Session, team_id: int, new_name: str, current_user: UserResponse):
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        return None, "Team not found"
+    if team.creator_id != current_user.id:
+        return None, "Not authorized to edit this team"
 
+    team.name = new_name
+    db.commit()
+    db.refresh(team)
+    return team, None
+
+def delete_team(db: Session, team_id: int, current_user: UserResponse):
+    # Get the team to be deleted
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        return False, "Team not found"
+    
+    # Check if the current user is the creator of the team
+    if team.creator_id != current_user.id:
+        return False, "Not authorized to delete this team"
+
+    # Define roles to be removed
+    roles_to_remove = {"Employee", "Employer"}
+
+    # Remove roles from all users in the team
+    for user in team.users:
+        # Set the user's team_id to None
+        user.team_id = None
+        
+        # Remove specific roles (Employee and Employer) from the user
+        user.roles = [role for role in user.roles if role.name not in roles_to_remove]
+
+    # Commit changes to user roles
+    db.commit()
+
+    # Remove all entries in the `day_shift_team` table that link the team to shifts
+    db.query(day_shift_team).filter(day_shift_team.c.team_id == team_id).delete(synchronize_session=False)
+    
+    # Commit changes for the day_shift_team association cleanup
+    db.commit()
+
+    # Delete the team (this will automatically delete all associated records due to cascade)
+    db.delete(team)
+    db.commit()
+
+    return True, None

@@ -7,7 +7,7 @@ class Expertise(Base):
     __tablename__ = "expertises"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, index=True)
+    name = Column(String(50), index=True)
     team_id = Column(Integer, ForeignKey("teams.id"))
     
     team = relationship("Team", back_populates="expertises")

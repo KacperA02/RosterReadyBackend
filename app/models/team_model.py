@@ -15,10 +15,10 @@ class Team(Base):
     # Relationships
     creator = relationship("User", back_populates="created_teams", foreign_keys=[creator_id]) 
     users = relationship("User", back_populates="team", foreign_keys=[User.team_id])
-    shifts = relationship("Shift", back_populates="team")
-    invitations = relationship("TeamInvitation", back_populates="team")
-    user_availability = relationship("UserAvailability", back_populates="team", foreign_keys=[UserAvailability.team_id])
-    expertises = relationship("Expertise", back_populates="team", foreign_keys=[Expertise.team_id])
+    shifts = relationship("Shift", back_populates="team",cascade="all, delete-orphan")
+    invitations = relationship("TeamInvitation", back_populates="team",cascade="all, delete-orphan")
+    user_availability = relationship("UserAvailability", back_populates="team", foreign_keys=[UserAvailability.team_id],cascade="all, delete-orphan")
+    expertises = relationship("Expertise", back_populates="team", foreign_keys=[Expertise.team_id], cascade="all, delete-orphan" )
     assignments = relationship("Assignment", back_populates="team", cascade="all, delete-orphan")
     solutions = relationship("Solution", back_populates="team", cascade="all, delete-orphan") 
     days = relationship(

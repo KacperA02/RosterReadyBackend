@@ -1,10 +1,7 @@
-# app/routes/websocket_routes.py
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from app.services.websocket_manager import manager
-from app.dependencies.auth import decode_access_token  # Make sure this exists in your auth file
-from app.models import User
+from app.dependencies.auth import decode_access_token  
 
-# Create an APIRouter instance
 router = APIRouter()
 
 @router.websocket("/ws")

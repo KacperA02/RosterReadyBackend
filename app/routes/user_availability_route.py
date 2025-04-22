@@ -20,7 +20,7 @@ async def create_availability(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["Employee", "Employer"]))
 ):
-    # Your existing logic to create availability
+    
     availability = create_user_availability(db, availability_data, current_user)
 
     # Ensure that you are correctly retrieving the user's team and employer

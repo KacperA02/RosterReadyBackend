@@ -97,3 +97,10 @@ async def mark_availability_viewed_route(
         print(f"Availability {availability_id} marked as viewed by {current_user.first_name}")
     
     return updated_availability
+
+@router.get("/teamInbox", response_model=List[UserAvailabilityResponse])
+async def get_team_availabilities_viewed_route(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Employer"]))
+):
+    return get_team_inbox(db, current_user)

@@ -94,6 +94,37 @@ def get_user_availabilities(db: Session, current_user: User):
         .filter(UserAvailability.user_id == current_user.id)
         .all()
     )
+    
+def get_team_inbox(db: Session, current_user: User):
+    # Ensure user is authorized (creator of the team)
+    team = db.query(Team).filter(Team.id == current_user.team_id).first()
+    if team is None or team.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view team availabilities")
+
+    # Return all availabilities for the team with relationships
+    return (
+        db.query(UserAvailability)
+        .options(
+            joinedload(UserAvailability.user),
+            joinedload(UserAvailability.day),
+            joinedload(UserAvailability.team)
+        )
+        .filter(UserAvailability.team_id == current_user.team_id, UserAvailability.viewed == False)
+        .all()
+    )
+
+# gets the availabilities of the user
+def get_user_availabilities(db: Session, current_user: User):
+    return (
+        db.query(UserAvailability)
+        .options(
+            joinedload(UserAvailability.day),
+            joinedload(UserAvailability.team),
+            joinedload(UserAvailability.user) 
+        )
+        .filter(UserAvailability.user_id == current_user.id)
+        .all()
+    )
 
 # toggles the approval status of the availability
 def toggle_approval(db: Session, availability_id: int, current_user: User):

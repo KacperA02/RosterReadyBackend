@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.association import day_shift_team
 from app.models.user_model import User
 from app.schemas.user_schema import UserResponse
-
+from sqlalchemy import delete
 # create a shift
 def create_shift(db: Session, shift: ShiftCreate, current_user: UserResponse):
     # checks if the user is part of a team
@@ -212,3 +212,35 @@ def remove_days_from_shift(db: Session, shift_id: int, shift_days: ShiftDaysCrea
     
     return {"detail": "Days successfully removed from the shift."}
 
+def delete_shift(db: Session, shift_id: int, current_user: UserResponse):
+    # Fetch the shift
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found.")
+
+    # Confirm the shift belongs to the user's team
+    if db_shift.team_id != current_user.team_id:
+        raise HTTPException(status_code=403, detail="This shift does not belong to your team.")
+
+    # Ensure the user is the team creator
+    team = db.query(Team).filter(Team.id == db_shift.team_id).first()
+    if team.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the team creator (Employer) can delete shifts.")
+
+    try:
+        # Explicitly delete from day_shift_team where this shift is referenced
+        db.execute(
+            day_shift_team.delete().where(day_shift_team.c.shift_id == db_shift.id)
+        )
+
+        # Assignments are automatically handled by `cascade="all, delete-orphan"`
+
+        # Delete the shift
+        db.delete(db_shift)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="An error occurred while deleting the shift.")
+
+    return {"detail": "Shift and related data successfully deleted."}

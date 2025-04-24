@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List
 from sqlalchemy.orm import Session
-from app.crud.shift_crud import create_shift, edit_shift, view_shift, view_shifts_by_team, attach_days_to_shift, remove_days_from_shift
+from app.crud.shift_crud import *
 from app.schemas.shift_schema import ShiftCreate, ShiftResponse , ShiftDaysCreate
 from app.dependencies.db_config import get_db
 from app.models import User
@@ -81,7 +81,13 @@ def remove_days_from_shift_route(
 ):
     return remove_days_from_shift(db, shift_id, shift_days, current_user)
 
-
+@router.delete("/specific/{shift_id}")
+def delete_shift_route(
+    shift_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Employer"]))  
+):
+    return delete_shift(db, shift_id, current_user)
 
 
 

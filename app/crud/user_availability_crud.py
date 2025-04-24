@@ -33,6 +33,7 @@ def create_user_availability(db: Session, availability_data: UserAvailabilityCre
             day_id=day_id,
             reason=availability_data.reason,
             approved=availability_data.approved,
+            viewed=False
         )
         db.add(db_availability)
         # append the availability to the list
@@ -112,7 +113,33 @@ def toggle_approval(db: Session, availability_id: int, current_user: User):
 
     # toggles the approval status
     availability_entry.approved = not availability_entry.approved
+    if availability_entry.approved and not availability_entry.viewed:
+        availability_entry.viewed = True
+        
     db.commit()
     db.refresh(availability_entry)
     
     return {"message": "Approval status updated", "approved": availability_entry.approved}
+
+def mark_availability_viewed(db: Session, availability_id: int, current_user: User):
+    # Get the availability entry
+    availability_entry = db.query(UserAvailability).filter(UserAvailability.id == availability_id).first()
+
+    # If not found
+    if not availability_entry:
+        raise HTTPException(status_code=404, detail="Availability not found")
+
+    # Get the team related to the availability
+    team = db.query(Team).filter(Team.id == availability_entry.team_id).first()
+
+    # Authorization check: only team creator can mark as viewed
+    if team is None or team.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to mark this availability as viewed")
+
+    # Only update if not already viewed
+    if not availability_entry.viewed:
+        availability_entry.viewed = True
+        db.commit()
+        db.refresh(availability_entry)
+
+    return {"message": "Marked as viewed", "viewed": availability_entry.viewed}

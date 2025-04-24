@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.user_availability_schema import UserAvailabilityCreate
-from app.crud.user_availability_crud import create_user_availability, delete_user_availability, get_team_availabilities, get_user_availabilities, toggle_approval  
+from app.crud.user_availability_crud import *
 from app.dependencies.auth import require_role
 from app.models import User
 from app.dependencies.db_config import get_db
@@ -83,4 +83,17 @@ async def toggle_approval_route(
         await manager.send_to_user(str(employee_id), message)
         print(f"Sent WebSocket notification to employee {employee_id}")
 
+    return updated_availability
+
+@router.patch("/viewed/{availability_id}")
+async def mark_availability_viewed_route(
+    availability_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Employer"]))
+):
+    updated_availability = mark_availability_viewed(db, availability_id, current_user)
+    
+    if updated_availability:
+        print(f"Availability {availability_id} marked as viewed by {current_user.first_name}")
+    
     return updated_availability

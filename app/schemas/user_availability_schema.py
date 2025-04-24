@@ -5,6 +5,7 @@ class UserAvailabilityCreate(BaseModel):
     day_ids: List[int]  # Only days now
     reason: Optional[str] = None
     approved: bool = False
+    viewed: bool = False
 
     class Config:
         from_attributes = True
@@ -35,6 +36,7 @@ class UserAvailabilityResponse(BaseModel):
     id: int
     approved: bool
     reason: Optional[str]
+    viewed: bool = False
     user: User
     day: Day
     team: Team

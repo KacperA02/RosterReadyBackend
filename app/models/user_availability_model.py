@@ -10,6 +10,7 @@ class UserAvailability(Base):
     team_id = Column(Integer, ForeignKey("teams.id"))
     day_id = Column(Integer, ForeignKey("days.id"))
     reason = Column(String(50))
+    viewed = Column(Boolean, default=False)
     approved = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="user_availability")

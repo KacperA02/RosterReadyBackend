@@ -123,3 +123,15 @@ def delete_team_route(
     if not success:
         raise HTTPException(status_code=400, detail=error)
     return
+
+@router.delete("/{team_id}/users/{user_id}", status_code=204)
+def remove_user_from_team_route(
+    team_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(require_role(["Employer"]))
+):
+    success, error = remove_user_from_team(db, team_id, user_id, current_user)
+    if not success:
+        raise HTTPException(status_code=400, detail=error)
+    return

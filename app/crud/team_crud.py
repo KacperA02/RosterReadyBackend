@@ -4,11 +4,14 @@ from app.models.user_model import User
 from app.models.shift_model import Shift
 from app.models.day_model import Day
 from app.models.role_model import Role
+from app.models.expertise_model import Expertise
 from app.schemas.team_schema import TeamCreate
 from app.schemas.user_schema import UserResponse
 from app.association import day_shift_team
-
-
+from app.models.user_availability_model import UserAvailability
+from app.models.assignment_model import Assignment
+from app.association import user_expertise
+from app.models.team_invitation_model import TeamInvitation
 def create_team(db: Session, team: TeamCreate, current_user: UserResponse):
     # Fetch the creator (current authenticated user)
     creator = db.query(User).filter(User.id == current_user.id).first()
@@ -114,3 +117,38 @@ def delete_team(db: Session, team_id: int, current_user: UserResponse):
     db.commit()
 
     return True, None
+
+def remove_user_from_team(db: Session, team_id: int, user_id: int, current_user: UserResponse):
+    user = db.query(User).filter(User.id == user_id, User.team_id == team_id).first()
+    
+    if not user:
+        return False, "User not found in the specified team"
+
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team or (team.creator_id != current_user.id and not any(role.name == "Employer" for role in current_user.roles)):
+        return False, "Unauthorized"
+
+    # Remove team_id
+    user.team_id = None
+
+    # Delete availability entries in that team
+    db.query(UserAvailability).filter_by(user_id=user_id, team_id=team_id).delete()
+
+    
+    db.query(Assignment).filter_by(user_id=user_id, team_id=team_id).delete()
+
+    # Remove expertise entries related to the team's expertises
+    db.execute(
+        user_expertise.delete().where(
+            user_expertise.c.user_id == user_id,
+            user_expertise.c.expertise_id.in_(
+                db.query(Expertise.id).filter(Expertise.team_id == team_id)
+            )
+        )
+    )
+    # Removing the team invitation
+    db.query(TeamInvitation).filter_by(user_id=user_id, team_id=team_id).delete()
+
+    db.commit()
+    return True, None
+

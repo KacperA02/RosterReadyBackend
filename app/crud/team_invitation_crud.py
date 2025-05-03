@@ -115,3 +115,28 @@ def get_pending_invitations_for_team(db: Session, team_id: int):
         TeamInvitation.team_id == team_id,
         TeamInvitation.status == InvitationStatus.PENDING
     ).all()
+    
+def cancel_invitation(db: Session, invitation_id: int, current_user: UserResponse):
+    # Fetch the invitation
+    invitation = db.query(TeamInvitation).filter(
+        TeamInvitation.id == invitation_id
+    ).first()
+
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation not found."
+        )
+
+    # Check that the invitation belongs to the current user's team
+    if invitation.team_id != current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only cancel invitations for your own team."
+        )
+
+    # Delete the invitation
+    db.delete(invitation)
+    db.commit()
+
+    return {"detail": "Invitation cancelled successfully."}

@@ -10,6 +10,7 @@ from app.services.websocket_manager import manager
 from app.models.team_model import Team
 from sqlalchemy import or_
 from app.models.user_model import User
+from app.dependencies.auth import require_role
 
 
 router = APIRouter()
@@ -18,7 +19,7 @@ router = APIRouter()
 async def invite_user(
     identifier: str = Body(..., embed=True),  # email or mobile_number
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
+    current_user: UserResponse = Depends(require_role(["Employer"]))
 ):
     # Look up user by email or mobile number
     invited_user = db.query(User).filter(
@@ -42,7 +43,13 @@ async def invite_user(
 
     return invitation
 
-
+@router.delete("/cancel/{invitation_id}", status_code=200)
+async def cancel_request_route(
+    invitation_id: int, 
+    current_user: UserResponse = Depends(require_role(["Employer"])), 
+    db: Session = Depends(get_db)
+):
+    return cancel_invitation(db, invitation_id, current_user)
 # accepting an invitation
 @router.post("/accept/{invitation_id}", response_model=TeamInvitationResponse)
 async def accept_invitation_route(

@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 # Get the database URL from environment variables
-DATABASE_URL = os.getenv("MY_DATABASE_URL")
+DATABASE_URL = os.getenv("MYSQL_URL")
 
 # Check if DATABASE_URL is loaded correctly
 if not DATABASE_URL:

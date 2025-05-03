@@ -12,19 +12,19 @@ class User(Base):
     email = Column(String(50), unique=True, index=True)
     password = Column(String(60))
     mobile_number = Column(String(12), unique=True, index=True)
-    day_off_count = Column(Integer, default=0)  # Set default value to 0
+    day_off_count = Column(Integer, default=0) 
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
-    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    roles = relationship("Role", secondary=user_roles, back_populates="users", cascade="all, delete")
     
     team = relationship("Team", back_populates="users", foreign_keys=[team_id])
     
-    created_teams = relationship("Team", back_populates="creator", foreign_keys="[Team.creator_id]")
+    created_teams = relationship("Team", back_populates="creator", foreign_keys="[Team.creator_id]", cascade="all, delete")
     
-    invitations = relationship("TeamInvitation", back_populates="user")
+    invitations = relationship("TeamInvitation", back_populates="user", cascade="all, delete")
     
-    user_availability = relationship("UserAvailability", back_populates="user")
+    user_availability = relationship("UserAvailability", back_populates="user", cascade="all, delete")
     
-    expertises = relationship("Expertise", secondary=user_expertise, back_populates="users")
+    expertises = relationship("Expertise", secondary=user_expertise, back_populates="users", cascade="all, delete")
     
-    assignments = relationship("Assignment", back_populates="user", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="user", cascade="all, delete")

@@ -11,6 +11,15 @@ class UserCreate(BaseModel):
 
     class Config:
         from_attributes = True 
+        
+class UserEdit(BaseModel):
+    first_name: str  
+    last_name: str   
+    email: str
+    mobile_number: str
+
+    class Config:
+        from_attributes = True         
 
 class UserResponse(BaseModel):
     id: int

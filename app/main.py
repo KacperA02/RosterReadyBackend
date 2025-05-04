@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],  
 )
 # Include routers
-app.include_router(user_router, prefix="/users", tags=["Users"])
+app.include_router(user_router)
 app.include_router(team_router, prefix="/teams", tags=["Teams"])
 app.include_router(shift_router, prefix="/shifts", tags=["Shifts"]) 
 app.include_router(day_router, prefix="/days", tags=["Days"])

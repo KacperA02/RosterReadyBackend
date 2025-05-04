@@ -40,7 +40,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rosterreadyback.fly.dev", "http://localhost:3000","https://rosterready1.vercel.app"],  
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],  

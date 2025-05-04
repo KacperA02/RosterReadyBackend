@@ -5,7 +5,12 @@ from app.crud.user_crud import *
 from app.dependencies.db_config import get_db
 from app.dependencies.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"],
+    redirect_slashes=True
+)
+
 
 @router.post("/", response_model=UserResponse)
 async def create_user_route(user: UserCreate, db: Session = Depends(get_db)):

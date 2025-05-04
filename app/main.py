@@ -40,9 +40,9 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["https://rosterreadyback.fly.dev", "http://localhost:3000"],  
     allow_credentials=True,
-    allow_methods=["*"], 
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
     allow_headers=["*"],  
 )
 # Include routers

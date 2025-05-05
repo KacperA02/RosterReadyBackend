@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import asyncio
 from sqlalchemy.orm import Session
 from app.dependencies.db_config import get_db
 from app.crud.scheduling_crud import *
@@ -12,6 +13,13 @@ from app.schemas.schedule_schema import *
 
 router = APIRouter()
 
+async def solve_with_timeout(solver, timeout: int = 25):
+    try:
+        # Run the CSP solver with a timeout limit
+        return await asyncio.wait_for(solver.solve(), timeout=timeout)
+    except TimeoutError:
+        raise HTTPException(status_code=408, detail="The shift assignment process timed out. Please try again later.")
+    
 @router.post("/assign-shifts/{team_id}/{week_id}", response_model=ShiftAssignmentResponse)
 async def assign_shifts(
     team_id: int,
@@ -38,7 +46,7 @@ async def assign_shifts(
     print(request_data)
 
     # calling the solve function within the shiftAssignmentSolver
-    result = solver.solve() 
+    result = await solve_with_timeout(solver, timeout=25)
     # if there are no assignments show 400 stats code
     if not result["assignments"]:
         raise HTTPException(status_code=400, detail="No valid shift assignments found")

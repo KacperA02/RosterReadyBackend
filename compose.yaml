@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: rosterready-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rosterready
+      POSTGRES_USER: rosterready
+      POSTGRES_PASSWORD: rosterready-local
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - rosterready-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosterready -d rosterready"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  rosterready-postgres-data:
+

@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 import pymysql
 pymysql.install_as_MySQLdb()
 from dotenv import load_dotenv
@@ -9,7 +8,7 @@ import os
 # Load environment variables from the .env file
 load_dotenv()
 
-# Get the database URL from environment variables
+# Legacy runtime only. The V2 PostgreSQL session lives in app.domain.database.
 DATABASE_URL = os.getenv("MYSQL_URL")
 
 # Check if DATABASE_URL is loaded correctly

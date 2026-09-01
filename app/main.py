@@ -40,7 +40,11 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rosterready1.vercel.app", "http://localhost:3000"],  
+    allow_origins=[
+        "https://rosterready1.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],  
@@ -61,4 +65,3 @@ app.include_router(expertise_router, prefix="/expertise", tags=["expertises"])
 # Create all database tables at once
 app.include_router(websocket_router, tags=["WebSocket"])
 Base.metadata.create_all(bind=engine)
-

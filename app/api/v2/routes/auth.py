@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.domain.database import get_db
 from app.domain.models import User
-from app.v2.schemas import LoginRequest, RegisterRequest, TokenResponse, UserResponse
-from app.v2.security import create_access_token, get_current_user, hash_password, verify_password
+from app.api.v2.schemas import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.core.security import create_access_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["V2 Authentication"])
 
@@ -83,4 +83,3 @@ def me(current_user: User = Depends(get_current_user)) -> User:
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response) -> None:
     response.delete_cookie("access_token", path="/")
-

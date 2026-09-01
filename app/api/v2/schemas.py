@@ -2,7 +2,14 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.domain.enums import InvitationStatus, MembershipRole, MembershipStatus
+from app.domain.enums import (
+    InvitationStatus,
+    MembershipRole,
+    MembershipStatus,
+    RequestStatus,
+    SkillProficiency,
+    TimeRequestType,
+)
 
 
 class RegisterRequest(BaseModel):
@@ -117,3 +124,52 @@ class MemberLimitsUpdate(BaseModel):
 class MemberAccessUpdate(BaseModel):
     role: MembershipRole
     status: MembershipStatus
+
+
+class SkillCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class SkillResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    name: str
+
+
+class MemberSkillUpdate(BaseModel):
+    proficiency: SkillProficiency = SkillProficiency.QUALIFIED
+
+
+class MemberSkillResponse(BaseModel):
+    skill_id: int
+    name: str
+    proficiency: SkillProficiency
+
+
+class TimeRequestCreate(BaseModel):
+    request_type: TimeRequestType
+    starts_at: datetime
+    ends_at: datetime
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class TimeRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_member_id: int
+    request_type: TimeRequestType
+    starts_at: datetime
+    ends_at: datetime
+    status: RequestStatus
+    reason: str | None
+    reviewed_by_member_id: int | None
+    reviewed_at: datetime | None
+    review_note: str | None
+
+
+class TimeRequestReview(BaseModel):
+    status: RequestStatus
+    review_note: str | None = Field(default=None, max_length=2000)

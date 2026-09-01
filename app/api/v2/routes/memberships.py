@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.domain.database import get_db
 from app.domain.enums import InvitationStatus, MembershipRole, MembershipStatus
-from app.domain.models import Team, TeamInvitation, TeamMember, User
-from app.v2.schemas import (
+from app.domain.models import TeamInvitation, TeamMember, User
+from app.repositories.memberships import get_member, list_members as find_members
+from app.services.memberships import MANAGEMENT_ROLES, require_active_membership, to_member_response
+from app.api.v2.schemas import (
     InvitationCreateRequest,
     InvitationCreatedResponse,
     InvitationResponse,
@@ -18,53 +20,13 @@ from app.v2.schemas import (
     MemberLimitsUpdate,
     MemberResponse,
 )
-from app.v2.security import get_current_user
+from app.core.security import get_current_user
 
 router = APIRouter(tags=["V2 Memberships"])
-MANAGEMENT_ROLES = {MembershipRole.OWNER, MembershipRole.MANAGER}
 
 
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def _active_membership(
-    db: Session,
-    user_id: int,
-    team_id: int,
-    allowed_roles: set[MembershipRole] | None = None,
-) -> TeamMember:
-    membership = db.scalar(
-        select(TeamMember).where(
-            TeamMember.user_id == user_id,
-            TeamMember.team_id == team_id,
-            TeamMember.status == MembershipStatus.ACTIVE,
-        )
-    )
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a team member")
-    if allowed_roles and membership.role not in allowed_roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient team permissions")
-    return membership
-
-
-def _member_response(membership: TeamMember) -> MemberResponse:
-    return MemberResponse(
-        id=membership.id,
-        user_id=membership.user_id,
-        first_name=membership.user.first_name,
-        last_name=membership.user.last_name,
-        email=membership.user.email,
-        role=membership.role,
-        status=membership.status,
-        contracted_minutes_week=membership.contracted_minutes_week,
-        maximum_minutes_week=membership.maximum_minutes_week,
-        maximum_days_week=membership.maximum_days_week,
-        maximum_consecutive_days=membership.maximum_consecutive_days,
-        minimum_rest_minutes=membership.minimum_rest_minutes,
-        effective_from=membership.effective_from,
-        effective_to=membership.effective_to,
-    )
 
 
 @router.post(
@@ -78,7 +40,7 @@ def create_invitation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> InvitationCreatedResponse:
-    _active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
+    require_active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
     if payload.role == MembershipRole.OWNER:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -132,7 +94,7 @@ def list_invitations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[TeamInvitation]:
-    _active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
+    require_active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
     return list(
         db.scalars(
             select(TeamInvitation)
@@ -198,7 +160,7 @@ def accept_invitation(
         .options(selectinload(TeamMember.user))
         .where(TeamMember.id == membership.id)
     )
-    return _member_response(membership)
+    return to_member_response(membership)
 
 
 @router.post("/invitations/{token}/decline", response_model=InvitationResponse)
@@ -222,14 +184,8 @@ def list_members(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[MemberResponse]:
-    _active_membership(db, current_user.id, team_id)
-    memberships = db.scalars(
-        select(TeamMember)
-        .options(selectinload(TeamMember.user))
-        .where(TeamMember.team_id == team_id)
-        .order_by(TeamMember.id)
-    ).all()
-    return [_member_response(membership) for membership in memberships]
+    require_active_membership(db, current_user.id, team_id)
+    return [to_member_response(membership) for membership in find_members(db, team_id)]
 
 
 @router.patch("/teams/{team_id}/members/{member_id}/limits", response_model=MemberResponse)
@@ -240,7 +196,7 @@ def update_member_limits(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MemberResponse:
-    _active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
+    require_active_membership(db, current_user.id, team_id, MANAGEMENT_ROLES)
     if payload.maximum_minutes_week < payload.contracted_minutes_week:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -252,18 +208,14 @@ def update_member_limits(
             detail="Effective end date cannot be before the start date",
         )
 
-    membership = db.scalar(
-        select(TeamMember)
-        .options(selectinload(TeamMember.user))
-        .where(TeamMember.id == member_id, TeamMember.team_id == team_id)
-    )
+    membership = get_member(db, team_id, member_id)
     if not membership:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found")
     for field, value in payload.model_dump().items():
         setattr(membership, field, value)
     db.commit()
     db.refresh(membership)
-    return _member_response(membership)
+    return to_member_response(membership)
 
 @router.patch("/teams/{team_id}/members/{member_id}/access", response_model=MemberResponse)
 def update_member_access(
@@ -273,12 +225,8 @@ def update_member_access(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MemberResponse:
-    actor = _active_membership(db, current_user.id, team_id, {MembershipRole.OWNER})
-    membership = db.scalar(
-        select(TeamMember)
-        .options(selectinload(TeamMember.user))
-        .where(TeamMember.id == member_id, TeamMember.team_id == team_id)
-    )
+    actor = require_active_membership(db, current_user.id, team_id, {MembershipRole.OWNER})
+    membership = get_member(db, team_id, member_id)
     if not membership:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found")
     if membership.id == actor.id:
@@ -295,4 +243,4 @@ def update_member_access(
     membership.status = payload.status
     db.commit()
     db.refresh(membership)
-    return _member_response(membership)
+    return to_member_response(membership)

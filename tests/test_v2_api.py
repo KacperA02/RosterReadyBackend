@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.domain.database import get_db
-from app.v2.main import app
+from app.api.v2.app import app
 
 
 def register(client: TestClient, email: str, mobile_number: str | None = None):
@@ -223,3 +223,226 @@ def test_member_limits_validation(client: TestClient):
     )
     assert response.status_code == 422
     assert response.json()["detail"] == "Maximum weekly minutes cannot be lower than contracted minutes"
+
+
+def test_owner_manages_team_skills_and_member_qualifications(client: TestClient):
+    register(client, "skills-owner@example.com")
+    login(client, "skills-owner@example.com")
+    team = create_team(client, "Skills Team")
+    team_id = team["id"]
+
+    created = client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "First Aid"})
+    assert created.status_code == 201
+    skill_id = created.json()["id"]
+
+    duplicate = client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "First Aid"})
+    assert duplicate.status_code == 409
+
+    skills = client.get(f"/api/v2/teams/{team_id}/skills")
+    assert skills.status_code == 200
+    assert skills.json() == [{"id": skill_id, "team_id": team_id, "name": "First Aid"}]
+
+    assigned = client.put(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills/{skill_id}",
+        json={"proficiency": "QUALIFIED"},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["proficiency"] == "QUALIFIED"
+
+    updated = client.put(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills/{skill_id}",
+        json={"proficiency": "ADVANCED"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["proficiency"] == "ADVANCED"
+
+    qualifications = client.get(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills"
+    )
+    assert qualifications.status_code == 200
+    assert qualifications.json() == [
+        {"skill_id": skill_id, "name": "First Aid", "proficiency": "ADVANCED"}
+    ]
+
+    removed = client.delete(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills/{skill_id}"
+    )
+    assert removed.status_code == 204
+    assert client.get(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills"
+    ).json() == []
+
+    assert client.delete(f"/api/v2/teams/{team_id}/skills/{skill_id}").status_code == 204
+
+
+def test_employee_can_view_but_cannot_manage_skills(client: TestClient):
+    register(client, "permissions-owner@example.com")
+    login(client, "permissions-owner@example.com")
+    team = create_team(client, "Permissions Team")
+    team_id = team["id"]
+    skill = client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "Closing"}).json()
+    invitation = client.post(
+        f"/api/v2/teams/{team_id}/invitations",
+        json={"email": "skills-employee@example.com", "role": "EMPLOYEE"},
+    ).json()
+
+    register(client, "skills-employee@example.com")
+    login(client, "skills-employee@example.com")
+    employee = client.post(f"/api/v2/invitations/{invitation['invitation_token']}/accept").json()
+
+    assert client.get(f"/api/v2/teams/{team_id}/skills").status_code == 200
+    assert client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "Opening"}).status_code == 403
+    assert client.put(
+        f"/api/v2/teams/{team_id}/members/{employee['id']}/skills/{skill['id']}",
+        json={"proficiency": "QUALIFIED"},
+    ).status_code == 403
+    assert client.delete(f"/api/v2/teams/{team_id}/skills/{skill['id']}").status_code == 403
+
+
+def test_qualifications_cannot_cross_team_boundaries(client: TestClient):
+    register(client, "boundary-owner@example.com")
+    login(client, "boundary-owner@example.com")
+    first = create_team(client, "Boundary One")
+    second = create_team(client, "Boundary Two")
+    skill = client.post(f"/api/v2/teams/{first['id']}/skills", json={"name": "Cash Handling"}).json()
+
+    response = client.put(
+        f"/api/v2/teams/{first['id']}/members/{second['membership']['id']}/skills/{skill['id']}",
+        json={"proficiency": "QUALIFIED"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Team member not found"
+
+
+def test_employee_submits_and_manager_reviews_time_request(client: TestClient):
+    register(client, "leave-owner@example.com")
+    login(client, "leave-owner@example.com")
+    team = create_team(client, "Leave Team")
+    team_id = team["id"]
+    invitation = client.post(
+        f"/api/v2/teams/{team_id}/invitations",
+        json={"email": "leave-employee@example.com", "role": "EMPLOYEE"},
+    ).json()
+
+    register(client, "leave-employee@example.com")
+    login(client, "leave-employee@example.com")
+    employee = client.post(f"/api/v2/invitations/{invitation['invitation_token']}/accept").json()
+    submitted = client.post(
+        f"/api/v2/teams/{team_id}/time-requests",
+        json={
+            "request_type": "HOLIDAY",
+            "starts_at": "2026-12-24T00:00:00Z",
+            "ends_at": "2026-12-27T00:00:00Z",
+            "reason": "Christmas break",
+        },
+    )
+    assert submitted.status_code == 201
+    request_id = submitted.json()["id"]
+    assert submitted.json()["team_member_id"] == employee["id"]
+    assert submitted.json()["status"] == "PENDING"
+
+    assert client.get(f"/api/v2/teams/{team_id}/time-requests/mine").json()[0]["id"] == request_id
+    assert client.get(f"/api/v2/teams/{team_id}/time-requests").status_code == 403
+
+    login(client, "leave-owner@example.com")
+    pending = client.get(f"/api/v2/teams/{team_id}/time-requests?status=PENDING")
+    assert pending.status_code == 200
+    assert [item["id"] for item in pending.json()] == [request_id]
+    reviewed = client.patch(
+        f"/api/v2/teams/{team_id}/time-requests/{request_id}/review",
+        json={"status": "APPROVED", "review_note": "Approved for Christmas"},
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "APPROVED"
+    assert reviewed.json()["reviewed_by_member_id"] == team["membership"]["id"]
+    assert reviewed.json()["reviewed_at"] is not None
+
+    corrected = client.patch(
+        f"/api/v2/teams/{team_id}/time-requests/{request_id}",
+        json={
+            "request_type": "HOLIDAY",
+            "starts_at": "2026-12-23T00:00:00Z",
+            "ends_at": "2026-12-27T00:00:00Z",
+            "reason": "Manager corrected the start date",
+        },
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["starts_at"].startswith("2026-12-23")
+
+    login(client, "leave-employee@example.com")
+    cancelled = client.patch(f"/api/v2/teams/{team_id}/time-requests/{request_id}/cancel")
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "CANCELLED"
+
+
+def test_time_request_period_and_overlap_validation(client: TestClient):
+    register(client, "time-validation@example.com")
+    login(client, "time-validation@example.com")
+    team_id = create_team(client, "Time Validation")["id"]
+    endpoint = f"/api/v2/teams/{team_id}/time-requests"
+
+    timezone_missing = client.post(
+        endpoint,
+        json={
+            "request_type": "UNAVAILABLE",
+            "starts_at": "2026-11-01T09:00:00",
+            "ends_at": "2026-11-01T17:00:00",
+        },
+    )
+    assert timezone_missing.status_code == 422
+    assert timezone_missing.json()["detail"] == "Start and end times must include a timezone"
+
+    backwards = client.post(
+        endpoint,
+        json={
+            "request_type": "UNAVAILABLE",
+            "starts_at": "2026-11-01T17:00:00Z",
+            "ends_at": "2026-11-01T09:00:00Z",
+        },
+    )
+    assert backwards.status_code == 422
+
+    assert client.post(
+        endpoint,
+        json={
+            "request_type": "UNAVAILABLE",
+            "starts_at": "2026-11-01T09:00:00Z",
+            "ends_at": "2026-11-01T17:00:00Z",
+        },
+    ).status_code == 201
+    overlap = client.post(
+        endpoint,
+        json={
+            "request_type": "PERSONAL_LEAVE",
+            "starts_at": "2026-11-01T16:00:00Z",
+            "ends_at": "2026-11-01T18:00:00Z",
+        },
+    )
+    assert overlap.status_code == 409
+
+
+def test_manager_can_submit_time_request_for_employee(client: TestClient):
+    register(client, "manual-owner@example.com")
+    login(client, "manual-owner@example.com")
+    team = create_team(client, "Manual Leave Team")
+    team_id = team["id"]
+    invitation = client.post(
+        f"/api/v2/teams/{team_id}/invitations",
+        json={"email": "manual-employee@example.com", "role": "EMPLOYEE"},
+    ).json()
+    register(client, "manual-employee@example.com")
+    login(client, "manual-employee@example.com")
+    employee = client.post(f"/api/v2/invitations/{invitation['invitation_token']}/accept").json()
+
+    login(client, "manual-owner@example.com")
+    response = client.post(
+        f"/api/v2/teams/{team_id}/members/{employee['id']}/time-requests",
+        json={
+            "request_type": "SICK_LEAVE",
+            "starts_at": "2026-10-03T08:00:00+01:00",
+            "ends_at": "2026-10-04T08:00:00+01:00",
+            "reason": "Recorded by manager",
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["team_member_id"] == employee["id"]

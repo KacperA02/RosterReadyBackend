@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.domain.database import get_db
 from app.domain.enums import MembershipRole, MembershipStatus
 from app.domain.models import Team, TeamMember, TeamPolicy, User
-from app.v2.schemas import TeamCreateRequest, TeamResponse, TeamWithMembershipResponse
-from app.v2.security import get_current_user
+from app.api.v2.schemas import TeamCreateRequest, TeamWithMembershipResponse
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/teams", tags=["V2 Teams"])
 
@@ -78,4 +78,3 @@ def list_my_teams(
         )
         for membership in memberships
     ]
-

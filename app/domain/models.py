@@ -326,7 +326,17 @@ class AssignmentEvent(TimestampMixin, Base):
 
 class TeamInvitation(TimestampMixin, Base):
     __tablename__ = "team_invitations"
-    __table_args__ = (Index("ix_invitations_team_status", "team_id", "status"),)
+    __table_args__ = (
+        Index("ix_invitations_team_status", "team_id", "status"),
+        Index(
+            "uq_invitations_pending_email",
+            "team_id",
+            "invited_email",
+            unique=True,
+            postgresql_where=text("status = 'PENDING'"),
+            sqlite_where=text("status = 'PENDING'"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))

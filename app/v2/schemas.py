@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.domain.enums import MembershipRole, MembershipStatus
+from app.domain.enums import InvitationStatus, MembershipRole, MembershipStatus
 
 
 class RegisterRequest(BaseModel):
@@ -65,3 +65,55 @@ class TeamResponse(BaseModel):
 
 class TeamWithMembershipResponse(TeamResponse):
     membership: MembershipSummary
+
+
+class InvitationCreateRequest(BaseModel):
+    email: EmailStr
+    role: MembershipRole = MembershipRole.EMPLOYEE
+
+
+class InvitationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    invited_email: EmailStr
+    proposed_role: MembershipRole
+    status: InvitationStatus
+    expires_at: datetime
+
+
+class InvitationCreatedResponse(InvitationResponse):
+    invitation_token: str
+
+
+class MemberResponse(BaseModel):
+    id: int
+    user_id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    role: MembershipRole
+    status: MembershipStatus
+    contracted_minutes_week: int
+    maximum_minutes_week: int
+    maximum_days_week: int
+    maximum_consecutive_days: int
+    minimum_rest_minutes: int
+    effective_from: date
+    effective_to: date | None
+
+
+class MemberLimitsUpdate(BaseModel):
+    contracted_minutes_week: int = Field(ge=0, le=10080)
+    maximum_minutes_week: int = Field(ge=0, le=10080)
+    maximum_days_week: int = Field(ge=1, le=7)
+    maximum_consecutive_days: int = Field(ge=1, le=7)
+    minimum_rest_minutes: int = Field(ge=0, le=1440)
+    effective_from: date
+    effective_to: date | None = None
+
+
+class MemberAccessUpdate(BaseModel):
+    role: MembershipRole
+    status: MembershipStatus

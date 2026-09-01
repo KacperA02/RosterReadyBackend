@@ -157,7 +157,10 @@ class MemberSkill(Base):
 
 class ShiftTemplate(TimestampMixin, Base):
     __tablename__ = "shift_templates"
-    __table_args__ = (CheckConstraint("end_time <> start_time", name="ck_template_nonzero_duration"),)
+    __table_args__ = (
+        CheckConstraint("end_time <> start_time", name="ck_template_nonzero_duration"),
+        UniqueConstraint("team_id", "name", name="uq_shift_templates_team_name"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"), index=True)
@@ -206,6 +209,7 @@ class ShiftInstance(TimestampMixin, Base):
         CheckConstraint("ends_at > starts_at", name="ck_shift_instance_duration"),
         CheckConstraint("required_staff > 0", name="ck_shift_instance_staff"),
         Index("ix_shift_instances_team_starts", "team_id", "starts_at"),
+        UniqueConstraint("template_id", "starts_at", name="uq_shift_instances_template_start"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

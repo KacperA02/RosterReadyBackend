@@ -55,7 +55,7 @@ def client():
     engine = create_engine(database_url)
     connection = engine.connect()
     transaction = connection.begin()
-    session = Session(bind=connection)
+    session = Session(bind=connection, join_transaction_mode="create_savepoint")
 
     def override_get_db():
         yield session
@@ -446,3 +446,126 @@ def test_manager_can_submit_time_request_for_employee(client: TestClient):
     )
     assert response.status_code == 201
     assert response.json()["team_member_id"] == employee["id"]
+
+
+def test_shift_template_rules_skills_and_idempotent_generation(client: TestClient):
+    register(client, "shifts-owner@example.com")
+    login(client, "shifts-owner@example.com")
+    team_id = create_team(client, "Shift Generation Team")["id"]
+    skill = client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "Supervisor"}).json()
+
+    template = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates",
+        json={"name": "Night", "start_time": "22:00:00", "end_time": "06:00:00"},
+    )
+    assert template.status_code == 201
+    template_id = template.json()["id"]
+    assert client.post(
+        f"/api/v2/teams/{team_id}/shift-templates",
+        json={"name": "Night", "start_time": "20:00:00", "end_time": "04:00:00"},
+    ).status_code == 409
+
+    requirement = client.put(
+        f"/api/v2/teams/{team_id}/shift-templates/{template_id}/skills/{skill['id']}",
+        json={"required_count": 1},
+    )
+    assert requirement.status_code == 200
+    rule = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates/{template_id}/rules",
+        json={
+            "weekday": 0,
+            "required_staff": 2,
+            "effective_from": "2026-09-01",
+            "effective_to": None,
+        },
+    )
+    assert rule.status_code == 201
+
+    generated = client.post(
+        f"/api/v2/teams/{team_id}/shift-instances/generate",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-14"},
+    )
+    assert generated.status_code == 200
+    assert generated.json()["created_count"] == 2
+    assert generated.json()["skipped_count"] == 0
+    first_instance = generated.json()["instances"][0]
+    assert first_instance["required_staff"] == 2
+    assert first_instance["starts_at"].startswith("2026-09-07T21:00:00")
+    assert first_instance["ends_at"].startswith("2026-09-08T05:00:00")
+
+    repeated = client.post(
+        f"/api/v2/teams/{team_id}/shift-instances/generate",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-14"},
+    )
+    assert repeated.status_code == 200
+    assert repeated.json()["created_count"] == 0
+    assert repeated.json()["skipped_count"] == 2
+
+    instances = client.get(
+        f"/api/v2/teams/{team_id}/shift-instances",
+        params={"starts_at": "2026-09-01T00:00:00Z", "ends_at": "2026-09-30T00:00:00Z"},
+    )
+    assert instances.status_code == 200
+    assert len(instances.json()) == 2
+    instance_skills = client.get(
+        f"/api/v2/teams/{team_id}/shift-instances/{first_instance['id']}/skills"
+    )
+    assert instance_skills.status_code == 200
+    assert instance_skills.json() == [
+        {"skill_id": skill["id"], "name": "Supervisor", "required_count": 1}
+    ]
+
+
+def test_employee_can_view_but_cannot_configure_shifts(client: TestClient):
+    register(client, "shift-permissions-owner@example.com")
+    login(client, "shift-permissions-owner@example.com")
+    team = create_team(client, "Shift Permissions")
+    invitation = client.post(
+        f"/api/v2/teams/{team['id']}/invitations",
+        json={"email": "shift-viewer@example.com", "role": "EMPLOYEE"},
+    ).json()
+    register(client, "shift-viewer@example.com")
+    login(client, "shift-viewer@example.com")
+    client.post(f"/api/v2/invitations/{invitation['invitation_token']}/accept")
+
+    assert client.get(f"/api/v2/teams/{team['id']}/shift-templates").status_code == 200
+    forbidden = client.post(
+        f"/api/v2/teams/{team['id']}/shift-templates",
+        json={"name": "Morning", "start_time": "08:00:00", "end_time": "16:00:00"},
+    )
+    assert forbidden.status_code == 403
+    assert client.post(
+        f"/api/v2/teams/{team['id']}/shift-instances/generate",
+        json={"period_start": "2026-09-01", "period_end": "2026-09-07"},
+    ).status_code == 403
+
+
+def test_shift_configuration_validation(client: TestClient):
+    register(client, "shift-validation-owner@example.com")
+    login(client, "shift-validation-owner@example.com")
+    team_id = create_team(client, "Shift Validation")["id"]
+    invalid = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates",
+        json={"name": "Zero", "start_time": "09:00:00", "end_time": "09:00:00"},
+    )
+    assert invalid.status_code == 422
+
+    template = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates",
+        json={"name": "Day", "start_time": "09:00:00", "end_time": "17:00:00"},
+    ).json()
+    invalid_period = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates/{template['id']}/rules",
+        json={
+            "weekday": 1,
+            "required_staff": 1,
+            "effective_from": "2026-10-10",
+            "effective_to": "2026-10-01",
+        },
+    )
+    assert invalid_period.status_code == 422
+    too_large = client.post(
+        f"/api/v2/teams/{team_id}/shift-instances/generate",
+        json={"period_start": "2026-01-01", "period_end": "2027-12-31"},
+    )
+    assert too_large.status_code == 422

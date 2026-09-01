@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -9,6 +9,7 @@ from app.domain.enums import (
     RequestStatus,
     SkillProficiency,
     TimeRequestType,
+    ShiftStatus,
 )
 
 
@@ -173,3 +174,78 @@ class TimeRequestResponse(BaseModel):
 class TimeRequestReview(BaseModel):
     status: RequestStatus
     review_note: str | None = Field(default=None, max_length=2000)
+
+
+class ShiftTemplateCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    start_time: time
+    end_time: time
+
+
+class ShiftTemplateUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    start_time: time | None = None
+    end_time: time | None = None
+    active: bool | None = None
+
+
+class ShiftTemplateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    name: str
+    start_time: time
+    end_time: time
+    active: bool
+
+
+class ShiftRuleCreate(BaseModel):
+    weekday: int = Field(ge=0, le=6)
+    required_staff: int = Field(ge=1, le=1000)
+    effective_from: date
+    effective_to: date | None = None
+
+
+class ShiftRuleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    shift_template_id: int
+    weekday: int
+    required_staff: int
+    effective_from: date
+    effective_to: date | None
+
+
+class ShiftTemplateSkillUpdate(BaseModel):
+    required_count: int = Field(default=1, ge=1, le=1000)
+
+
+class ShiftTemplateSkillResponse(BaseModel):
+    skill_id: int
+    name: str
+    required_count: int
+
+
+class ShiftGenerationRequest(BaseModel):
+    period_start: date
+    period_end: date
+
+
+class ShiftInstanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    template_id: int | None
+    starts_at: datetime
+    ends_at: datetime
+    required_staff: int
+    status: ShiftStatus
+
+
+class ShiftGenerationResponse(BaseModel):
+    created_count: int
+    skipped_count: int
+    instances: list[ShiftInstanceResponse]

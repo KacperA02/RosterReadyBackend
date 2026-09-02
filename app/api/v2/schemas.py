@@ -7,9 +7,12 @@ from app.domain.enums import (
     MembershipRole,
     MembershipStatus,
     RequestStatus,
+    RosterStatus,
     SkillProficiency,
     TimeRequestType,
     ShiftStatus,
+    SolverStatus,
+    AssignmentSource,
 )
 
 
@@ -249,3 +252,46 @@ class ShiftGenerationResponse(BaseModel):
     created_count: int
     skipped_count: int
     instances: list[ShiftInstanceResponse]
+
+
+class RosterCreateRequest(BaseModel):
+    period_start: date
+    period_end: date
+
+
+class RosterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    period_start: date
+    period_end: date
+    status: RosterStatus
+    solver_status: SolverStatus
+    solver_duration_ms: int | None
+    objective_score: float | None
+    solver_metadata: dict | None
+    created_by_member_id: int
+    published_at: datetime | None
+
+
+class AssignmentResponse(BaseModel):
+    id: int
+    roster_id: int
+    shift_instance_id: int
+    team_member_id: int
+    source: AssignmentSource
+    locked: bool
+    starts_at: datetime
+    ends_at: datetime
+    member_name: str
+
+
+class RosterDetailResponse(RosterResponse):
+    assignments: list[AssignmentResponse]
+
+
+class ManualAssignmentCreate(BaseModel):
+    shift_instance_id: int
+    team_member_id: int
+    reason: str | None = Field(default=None, max_length=2000)

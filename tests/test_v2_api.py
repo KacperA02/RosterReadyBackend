@@ -569,3 +569,178 @@ def test_shift_configuration_validation(client: TestClient):
         json={"period_start": "2026-01-01", "period_end": "2027-12-31"},
     )
     assert too_large.status_code == 422
+
+
+def _create_monday_shift(client: TestClient, team_id: int, required_staff: int = 1):
+    template = client.post(
+        f"/api/v2/teams/{team_id}/shift-templates",
+        json={"name": "Monday Day", "start_time": "09:00:00", "end_time": "17:00:00"},
+    ).json()
+    client.post(
+        f"/api/v2/teams/{team_id}/shift-templates/{template['id']}/rules",
+        json={
+            "weekday": 0,
+            "required_staff": required_staff,
+            "effective_from": "2026-09-01",
+        },
+    )
+    generated = client.post(
+        f"/api/v2/teams/{team_id}/shift-instances/generate",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-07"},
+    )
+    assert generated.status_code == 200
+    return template, generated.json()["instances"][0]
+
+
+def test_cp_sat_creates_and_publishes_feasible_roster(client: TestClient):
+    register(client, "solver-owner@example.com")
+    login(client, "solver-owner@example.com")
+    team = create_team(client, "Solver Team")
+    team_id = team["id"]
+    _, shift = _create_monday_shift(client, team_id)
+    roster = client.post(
+        f"/api/v2/teams/{team_id}/rosters",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-13"},
+    )
+    assert roster.status_code == 201
+    roster_id = roster.json()["id"]
+
+    solved = client.post(f"/api/v2/teams/{team_id}/rosters/{roster_id}/solve")
+    assert solved.status_code == 200
+    assert solved.json()["solver_status"] == "OPTIMAL", solved.json()["solver_metadata"]
+    assert len(solved.json()["assignments"]) == 1
+    assert solved.json()["assignments"][0]["shift_instance_id"] == shift["id"]
+    assert solved.json()["assignments"][0]["team_member_id"] == team["membership"]["id"]
+
+    published = client.post(f"/api/v2/teams/{team_id}/rosters/{roster_id}/publish")
+    assert published.status_code == 200
+    assert published.json()["status"] == "PUBLISHED"
+    assert client.post(f"/api/v2/teams/{team_id}/rosters/{roster_id}/solve").status_code == 409
+
+
+def test_cp_sat_respects_approved_unavailability(client: TestClient):
+    register(client, "unavailable-solver@example.com")
+    login(client, "unavailable-solver@example.com")
+    team = create_team(client, "Unavailable Solver")
+    team_id = team["id"]
+    _create_monday_shift(client, team_id)
+    request = client.post(
+        f"/api/v2/teams/{team_id}/time-requests",
+        json={
+            "request_type": "UNAVAILABLE",
+            "starts_at": "2026-09-07T00:00:00Z",
+            "ends_at": "2026-09-08T00:00:00Z",
+        },
+    ).json()
+    assert client.patch(
+        f"/api/v2/teams/{team_id}/time-requests/{request['id']}/review",
+        json={"status": "APPROVED"},
+    ).status_code == 200
+    roster = client.post(
+        f"/api/v2/teams/{team_id}/rosters",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-13"},
+    ).json()
+    solved = client.post(f"/api/v2/teams/{team_id}/rosters/{roster['id']}/solve")
+    assert solved.status_code == 200
+    assert solved.json()["solver_status"] == "INFEASIBLE"
+    assert solved.json()["assignments"] == []
+    assert client.post(f"/api/v2/teams/{team_id}/rosters/{roster['id']}/publish").status_code == 409
+
+
+def test_cp_sat_enforces_required_skills(client: TestClient):
+    register(client, "qualified-solver@example.com")
+    login(client, "qualified-solver@example.com")
+    team = create_team(client, "Qualified Solver")
+    team_id = team["id"]
+    skill = client.post(f"/api/v2/teams/{team_id}/skills", json={"name": "Keyholder"}).json()
+    template, _ = _create_monday_shift(client, team_id)
+    assert client.put(
+        f"/api/v2/teams/{team_id}/shift-templates/{template['id']}/skills/{skill['id']}",
+        json={"required_count": 1},
+    ).status_code == 200
+    # Regenerate after adding the template requirement in a fresh week.
+    generated = client.post(
+        f"/api/v2/teams/{team_id}/shift-instances/generate",
+        json={"period_start": "2026-09-14", "period_end": "2026-09-14"},
+    )
+    assert generated.status_code == 200
+    roster = client.post(
+        f"/api/v2/teams/{team_id}/rosters",
+        json={"period_start": "2026-09-14", "period_end": "2026-09-20"},
+    ).json()
+    assert client.post(
+        f"/api/v2/teams/{team_id}/rosters/{roster['id']}/solve"
+    ).json()["solver_status"] == "INFEASIBLE"
+
+    assert client.put(
+        f"/api/v2/teams/{team_id}/members/{team['membership']['id']}/skills/{skill['id']}",
+        json={"proficiency": "QUALIFIED"},
+    ).status_code == 200
+    solved = client.post(f"/api/v2/teams/{team_id}/rosters/{roster['id']}/solve")
+    assert solved.json()["solver_status"] == "OPTIMAL", solved.json()
+    assert len(solved.json()["assignments"]) == 1
+
+
+def test_manual_assignment_is_locked_during_solve_and_can_be_removed(client: TestClient):
+    register(client, "manual-roster-owner@example.com")
+    login(client, "manual-roster-owner@example.com")
+    team = create_team(client, "Manual Roster")
+    team_id = team["id"]
+    _, shift = _create_monday_shift(client, team_id)
+    roster = client.post(
+        f"/api/v2/teams/{team_id}/rosters",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-13"},
+    ).json()
+    manual = client.post(
+        f"/api/v2/teams/{team_id}/rosters/{roster['id']}/assignments",
+        json={
+            "shift_instance_id": shift["id"],
+            "team_member_id": team["membership"]["id"],
+            "reason": "Manager selected this employee",
+        },
+    )
+    assert manual.status_code == 201
+    assert manual.json()["source"] == "OVERRIDE"
+    assert manual.json()["locked"] is True
+
+    solved = client.post(f"/api/v2/teams/{team_id}/rosters/{roster['id']}/solve")
+    assert solved.status_code == 200
+    assert solved.json()["solver_status"] == "OPTIMAL"
+    assert len(solved.json()["assignments"]) == 1
+    assert solved.json()["assignments"][0]["id"] == manual.json()["id"]
+
+    removed = client.delete(
+        f"/api/v2/teams/{team_id}/rosters/{roster['id']}/assignments/{manual.json()['id']}",
+        params={"reason": "Coverage changed"},
+    )
+    assert removed.status_code == 204
+    detail = client.get(f"/api/v2/teams/{team_id}/rosters/{roster['id']}")
+    assert detail.json()["assignments"] == []
+    assert detail.json()["solver_status"] == "PENDING"
+
+
+def test_employee_can_view_but_cannot_manage_rosters(client: TestClient):
+    register(client, "roster-permissions-owner@example.com")
+    login(client, "roster-permissions-owner@example.com")
+    team = create_team(client, "Roster Permissions")
+    roster = client.post(
+        f"/api/v2/teams/{team['id']}/rosters",
+        json={"period_start": "2026-09-07", "period_end": "2026-09-13"},
+    ).json()
+    invitation = client.post(
+        f"/api/v2/teams/{team['id']}/invitations",
+        json={"email": "roster-viewer@example.com", "role": "EMPLOYEE"},
+    ).json()
+    register(client, "roster-viewer@example.com")
+    login(client, "roster-viewer@example.com")
+    client.post(f"/api/v2/invitations/{invitation['invitation_token']}/accept")
+
+    assert client.get(f"/api/v2/teams/{team['id']}/rosters").status_code == 200
+    assert client.get(f"/api/v2/teams/{team['id']}/rosters/{roster['id']}").status_code == 200
+    assert client.post(
+        f"/api/v2/teams/{team['id']}/rosters",
+        json={"period_start": "2026-09-14", "period_end": "2026-09-20"},
+    ).status_code == 403
+    assert client.post(
+        f"/api/v2/teams/{team['id']}/rosters/{roster['id']}/solve"
+    ).status_code == 403

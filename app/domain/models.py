@@ -318,7 +318,9 @@ class AssignmentEvent(TimestampMixin, Base):
     __tablename__ = "assignment_events"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    assignment_id: Mapped[int] = mapped_column(ForeignKey("assignments.id", ondelete="CASCADE"), index=True)
+    assignment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("assignments.id", ondelete="SET NULL"), index=True
+    )
     actor_member_id: Mapped[int] = mapped_column(ForeignKey("team_members.id"))
     event_type: Mapped[AssignmentEventType] = mapped_column(
         Enum(AssignmentEventType, name="assignment_event_type")
